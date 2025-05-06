@@ -1,0 +1,11 @@
+package com.bfe.project.service.impl.InfoColl;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.bfe.project.entity.InfoColl.InfoCollNiwPetitionSupplementalEvidence;
+import com.bfe.project.mapper.InfoColl.InfoCollNiwPetitionSupplementalEvidenceMapper;
+import com.bfe.project.service.InfoColl.InfoCollNiwPetitionSupplementalEvidenceService;
+import org.springframework.stereotype.Service;
+
+@Service
+public class InfoCollNiwPetitionSupplementalEvidenceServiceImpl extends ServiceImpl<InfoCollNiwPetitionSupplementalEvidenceMapper, InfoCollNiwPetitionSupplementalEvidence> implements InfoCollNiwPetitionSupplementalEvidenceService {
+} 
