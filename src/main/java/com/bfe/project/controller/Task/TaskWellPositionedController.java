@@ -36,9 +36,9 @@ public class TaskWellPositionedController {
         Map<String, Object> result = new HashMap<>();
         result.put("id", wellPositioned.getId());
         result.put("clientCaseId", wellPositioned.getClientCaseId());
-        result.put("draft", wellPositioned.getProng2WpDraft());
-        result.put("overall", wellPositioned.getProng2WpOverall());
-        result.put("confirm", wellPositioned.getProng2WpConfirm());
+        result.put("prong2WpDraft", wellPositioned.getProng2WpDraft());
+        result.put("prong2WpOverall", wellPositioned.getProng2WpOverall());
+        result.put("prong2WpConfirm", wellPositioned.getProng2WpConfirm());
 
         return result;
     }
@@ -60,9 +60,9 @@ public class TaskWellPositionedController {
         // 创建新记录
         TaskWellPositioned wellPositioned = new TaskWellPositioned();
         wellPositioned.setClientCaseId(caseId);
-        wellPositioned.setProng2WpDraft((String) data.get("draft"));
-        wellPositioned.setProng2WpOverall((String) data.get("overall"));
-        wellPositioned.setProng2WpConfirm((String) data.get("confirm"));
+        wellPositioned.setProng2WpDraft((String) data.get("prong2WpDraft"));
+        wellPositioned.setProng2WpOverall((String) data.get("prong2WpOverall"));
+        wellPositioned.setProng2WpConfirm((String) data.get("prong2WpConfirm"));
         
         wellPositionedService.save(wellPositioned);
 

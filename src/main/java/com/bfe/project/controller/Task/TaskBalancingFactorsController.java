@@ -36,9 +36,9 @@ public class TaskBalancingFactorsController {
         Map<String, Object> result = new HashMap<>();
         result.put("id", balancingFactors.getId());
         result.put("clientCaseId", balancingFactors.getClientCaseId());
-        result.put("draft", balancingFactors.getProng3BfDraft());
-        result.put("overall", balancingFactors.getProng3BfOverall());
-        result.put("confirm", balancingFactors.getProng3BfConfirm());
+        result.put("prong3BfDraft", balancingFactors.getProng3BfDraft());
+        result.put("prong3BfOverall", balancingFactors.getProng3BfOverall());
+        result.put("prong3BfConfirm", balancingFactors.getProng3BfConfirm());
 
         return result;
     }
@@ -60,9 +60,9 @@ public class TaskBalancingFactorsController {
         // 创建新记录
         TaskBalancingFactors balancingFactors = new TaskBalancingFactors();
         balancingFactors.setClientCaseId(caseId);
-        balancingFactors.setProng3BfDraft((String) data.get("draft"));
-        balancingFactors.setProng3BfOverall((String) data.get("overall"));
-        balancingFactors.setProng3BfConfirm((String) data.get("confirm"));
+        balancingFactors.setProng3BfDraft((String) data.get("prong3BfDraft"));
+        balancingFactors.setProng3BfOverall((String) data.get("prong3BfOverall"));
+        balancingFactors.setProng3BfConfirm((String) data.get("prong3BfConfirm"));
         
         balancingFactorsService.save(balancingFactors);
 

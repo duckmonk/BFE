@@ -14,6 +14,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         
         // 允许跨域的源
+        config.addAllowedOrigin("http://localhost:3000");
         config.addAllowedOrigin("http://localhost:3001");
         
         // 允许跨域的请求头

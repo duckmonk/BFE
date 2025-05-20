@@ -88,7 +88,7 @@ public class InfoCollRecommenderController {
         return result;
     }
 
-    @PostMapping("/submit")
+    @PostMapping("/upsert")
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> submitRecommenders(@RequestBody Map<String, Object> data) throws JsonProcessingException {
         Integer clientCaseId = (Integer) data.get("clientCaseId");

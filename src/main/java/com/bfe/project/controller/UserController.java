@@ -47,6 +47,7 @@ public class UserController {
             result.put("userType", user.getUserType());
             result.put("userId", user.getId());
             result.put("userName", user.getName());
+            result.put("email", user.getEmail());
             System.out.println("登录成功: " + StpUtil.getLoginIdAsInt());
             return result;
         } catch (Exception e) {

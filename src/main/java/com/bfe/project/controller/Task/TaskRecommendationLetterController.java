@@ -106,7 +106,7 @@ public class TaskRecommendationLetterController {
         return result;
     }
 
-    @PostMapping("/submit")
+    @PostMapping("/upsert")
     @Transactional(rollbackFor = Exception.class)
     public List<Map<String, Object>> submitRecommendationLetters(@RequestBody List<Map<String, Object>> letters) {
         if (letters == null || letters.isEmpty()) {

@@ -36,14 +36,14 @@ public class TaskSubstantialMeritsController {
         Map<String, Object> result = new HashMap<>();
         result.put("id", substantialMerits.getId());
         result.put("clientCaseId", substantialMerits.getClientCaseId());
-        result.put("draft", substantialMerits.getProng1SmDraft());
-        result.put("overall", substantialMerits.getProng1SmOverall());
-        result.put("confirm", substantialMerits.getProng1SmConfirm());
+        result.put("prong1SmDraft", substantialMerits.getProng1SmDraft());
+        result.put("prong1SmOverall", substantialMerits.getProng1SmOverall());
+        result.put("prong1SmConfirm", substantialMerits.getProng1SmConfirm());
 
         return result;
     }
 
-    @PostMapping("/submit")
+    @PostMapping("/upsert")
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> submitSubstantialMerits(@RequestBody Map<String, Object> data) {
         if (data == null) {
@@ -60,9 +60,9 @@ public class TaskSubstantialMeritsController {
         // 创建新记录
         TaskSubstantialMerits substantialMerits = new TaskSubstantialMerits();
         substantialMerits.setClientCaseId(caseId);
-        substantialMerits.setProng1SmDraft((String) data.get("draft"));
-        substantialMerits.setProng1SmOverall((String) data.get("overall"));
-        substantialMerits.setProng1SmConfirm((String) data.get("confirm"));
+        substantialMerits.setProng1SmDraft((String) data.get("prong1SmDraft"));
+        substantialMerits.setProng1SmOverall((String) data.get("prong1SmOverall"));
+        substantialMerits.setProng1SmConfirm((String) data.get("prong1SmConfirm"));
         
         substantialMeritsService.save(substantialMerits);
 
