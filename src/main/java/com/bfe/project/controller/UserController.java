@@ -2,7 +2,9 @@ package com.bfe.project.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.bfe.project.entity.Inquiry;
 import com.bfe.project.entity.User;
+import com.bfe.project.service.InquiryService;
 import com.bfe.project.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/user")
@@ -17,6 +20,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private InquiryService inquiryService;
 
     // 测试登录，浏览器访问： http://localhost:8081/user/doLogin?email=zhang&password=123456
     @RequestMapping("doLogin")
@@ -107,9 +113,49 @@ public class UserController {
         return userService.getById(id);
     }
 
+    @PostMapping("/createByInquiry")
+    public Map<String, Object> createUserByInquiry(@RequestBody Map<String, Object> data) {
+        // 生成10位随机密码
+        String password = generateRandomPassword(10);
+        
+        // 创建用户
+        User user = new User();
+        user.setName((String) data.get("name"));
+        user.setEmail((String) data.get("email"));
+        user.setPassword(password);
+        user.setUserType("client");
+        userService.save(user);
+        
+        // 更新inquiry
+        Integer inquiryId = (Integer) data.get("inquiryId");
+        Inquiry inquiry = inquiryService.getById(inquiryId);
+        inquiry.setUserId(user.getId());
+        inquiryService.updateById(inquiry);
+        
+        return Map.of(
+            "status", "success",
+            "userId", user.getId(),
+            "password", password,
+            "name", user.getName(),
+            "email", user.getEmail()
+        );
+    }
+    
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder sb = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
     private User getByEmail(String email) {
         return userService.lambdaQuery()
                 .eq(User::getEmail, email)
                 .one();
     }
-} 
+
+    
+}

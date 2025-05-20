@@ -16,5 +16,5 @@ public class InfoCollNiwPetition {
 
     // NIW 申请信息
     private String userPath;
-    private String userPathRespondents;
+    private String respondents;
 } 

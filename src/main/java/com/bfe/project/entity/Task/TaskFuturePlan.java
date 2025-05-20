@@ -19,6 +19,7 @@ public class TaskFuturePlan {
     private String futureplanShort;
     private String futureplanLong;
     private String futureplanReferees;
+    private String futureplanRefereeNotes;
     private String futureplanFeedback;
     private String futureplanSubmitDraft;
     private String futureplanConfirm;

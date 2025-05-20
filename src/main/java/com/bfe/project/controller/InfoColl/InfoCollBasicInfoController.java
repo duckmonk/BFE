@@ -35,7 +35,7 @@ public class InfoCollBasicInfoController {
         }
     }
 
-    @PostMapping("/save-or-update")
+    @PostMapping("/upsert")
     public Map<String, Object> saveOrUpdate(@RequestBody InfoCollBasicInfo basicInfo) {
         Map<String, Object> result = new HashMap<>();
         

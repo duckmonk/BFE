@@ -2,6 +2,8 @@ package com.bfe.project.mapper.InfoColl;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.bfe.project.entity.InfoColl.InfoCollFinalQuestionnaire;
+import org.apache.ibatis.annotations.Mapper;
 
+@Mapper
 public interface InfoCollFinalQuestionnaireMapper extends BaseMapper<InfoCollFinalQuestionnaire> {
 } 

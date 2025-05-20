@@ -11,8 +11,7 @@ public class InfoCollAcademicPublication {
     @TableId(type = IdType.AUTO)
     private Integer id;
 
-    // 关联案件ID
-    private Integer clientCaseId;
+    private Integer contributionId;
 
     // 学术出版物信息
     private String pubInstitution;

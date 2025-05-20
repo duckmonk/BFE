@@ -26,8 +26,8 @@ public class InfoCollEmploymentHistory {
     private String businessType;
     private String jobTitle;
     private BigDecimal salary;
-    private Date startDate;
-    private Date endDate;
+    private String startDate;
+    private String endDate;
     private BigDecimal hoursPerWeek;
     private String jobSummary;
     private String employerWebsite;

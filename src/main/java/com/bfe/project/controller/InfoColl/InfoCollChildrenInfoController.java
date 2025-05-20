@@ -17,7 +17,7 @@ public class InfoCollChildrenInfoController {
     @Autowired
     private InfoCollChildrenInfoService infoCollChildrenInfoService;
 
-    @PostMapping("/save-or-update")
+    @PostMapping("/upsert")
     public Map<String, Object> saveOrUpdate(@RequestBody List<InfoCollChildrenInfo> childrenInfoList) {
         Map<String, Object> result = new HashMap<>();
         

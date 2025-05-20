@@ -17,7 +17,7 @@ public class InfoCollAcademicHistoryController {
     @Autowired
     private InfoCollAcademicHistoryService infoCollAcademicHistoryService;
 
-    @PostMapping("/save-or-update")
+    @PostMapping("/upsert")
     public Map<String, Object> saveOrUpdate(@RequestBody List<InfoCollAcademicHistory> academicHistoryList) {
         Map<String, Object> result = new HashMap<>();
         

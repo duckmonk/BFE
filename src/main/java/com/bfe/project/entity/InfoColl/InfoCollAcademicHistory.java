@@ -21,8 +21,8 @@ public class InfoCollAcademicHistory {
     private String degree;
     private String schoolName;
     private String status;
-    private Date startDate;
-    private Date endDate;
+    private String startDate;
+    private String endDate;
     private String major;
     private String docLanguage;
     private String transcriptsOriginal;

@@ -36,3 +36,4 @@ build/
 frontend/node_modules
 
 demo-0-rsa.pem
+/.mvn/

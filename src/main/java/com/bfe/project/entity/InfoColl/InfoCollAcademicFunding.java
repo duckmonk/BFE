@@ -11,10 +11,8 @@ public class InfoCollAcademicFunding {
     @TableId(type = IdType.AUTO)
     private Integer id;
 
-    // 关联案件ID
-    private Integer clientCaseId;
+    private Integer contributionId;
 
-    // 学术资金信息
     private String fundingCategory;
     private String fundingLinks;
     private String fundingAttachments;

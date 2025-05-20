@@ -10,4 +10,5 @@ public class ClientCase {
     private Integer id;
 
     private Integer userId;
+    private long createTimestamp;
 } 

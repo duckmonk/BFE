@@ -17,7 +17,7 @@ public class InfoCollSpouseInfoController {
     @Autowired
     private InfoCollSpouseInfoService infoCollSpouseInfoService;
 
-    @PostMapping("/save-or-update")
+    @PostMapping("/upsert")
     public Map<String, Object> saveOrUpdate(@RequestBody InfoCollSpouseInfo spouseInfo) {
         Map<String, Object> result = new HashMap<>();
         

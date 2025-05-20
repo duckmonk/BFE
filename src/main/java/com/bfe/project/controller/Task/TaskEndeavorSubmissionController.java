@@ -17,7 +17,7 @@ public class TaskEndeavorSubmissionController {
     @Autowired
     private TaskEndeavorSubmissionService taskEndeavorSubmissionService;
 
-    @PostMapping("/save-or-update")
+    @PostMapping("/upsert")
     public Map<String, Object> saveOrUpdate(@RequestBody TaskEndeavorSubmission submission) {
         Map<String, Object> result = new HashMap<>();
         

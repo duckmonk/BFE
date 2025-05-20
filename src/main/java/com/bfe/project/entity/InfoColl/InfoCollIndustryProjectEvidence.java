@@ -12,7 +12,7 @@ public class InfoCollIndustryProjectEvidence {
     private Integer id;
 
     // 关联案件ID
-    private Integer clientCaseId;
+    private Integer contributionId;
 
     // 行业项目证据信息
     private String evidenceType;

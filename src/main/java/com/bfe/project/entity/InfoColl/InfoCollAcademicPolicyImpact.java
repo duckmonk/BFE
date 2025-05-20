@@ -11,8 +11,7 @@ public class InfoCollAcademicPolicyImpact {
     @TableId(type = IdType.AUTO)
     private Integer id;
 
-    // 关联案件ID
-    private Integer clientCaseId;
+    private Integer contributionId;
 
     // 学术政策影响信息
     private String impactField;

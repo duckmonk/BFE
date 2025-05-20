@@ -17,7 +17,7 @@ public class InfoCollResumeController {
     @Autowired
     private InfoCollResumeService infoCollResumeService;
 
-    @PostMapping("/save-or-update")
+    @PostMapping("/upsert")
     public Map<String, Object> saveOrUpdate(@RequestBody InfoCollResume resume) {
         Map<String, Object> result = new HashMap<>();
         

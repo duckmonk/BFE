@@ -6,6 +6,10 @@ import com.bfe.project.service.InquiryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @RestController
@@ -15,18 +19,21 @@ public class InquiryController {
     @Autowired
     private InquiryService inquiryService;
 
-    @GetMapping("/list")
-    public List<Inquiry> list() {
-        List<Inquiry> inquiries = inquiryService.list();
-        System.out.println("查询到的问卷数量: " + inquiries.size());
-        inquiries.forEach(inquiry -> System.out.println("问卷信息: " + inquiry));
-        return inquiries;
-    }
-
+    
     @GetMapping("/page")
     public Page<Inquiry> page(@RequestParam(defaultValue = "1") Integer current,
-                            @RequestParam(defaultValue = "10") Integer size) {
-        return inquiryService.page(new Page<>(current, size));
+                            @RequestParam(defaultValue = "10") Integer size,
+                            @RequestParam(required = false) Long dateStart,
+                            @RequestParam(required = false) Long dateEnd) {
+        System.out.println("Request params:");
+        System.out.println("current: " + current);
+        System.out.println("size: " + size);
+        System.out.println("dateStart: " + dateStart);
+        System.out.println("dateEnd: " + dateEnd);
+        return inquiryService.lambdaQuery()
+                .ge(dateStart != null, Inquiry::getCreateTimestamp, dateStart)
+                .le(dateEnd != null, Inquiry::getCreateTimestamp, dateEnd)
+                .page(new Page<>(current, size));
     }
 
     @PostMapping("/save")

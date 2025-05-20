@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.ToString;
 
-import java.util.Date;
 
 @Data
 @ToString
@@ -29,7 +28,7 @@ public class InfoCollRecommender {
     private String company;
     private String department;
     private String title;
-    private Date meetDate;
+    private String meetDate;
     private String evalAspects;
     private String evalAspectsOther;
     private String independentEval;

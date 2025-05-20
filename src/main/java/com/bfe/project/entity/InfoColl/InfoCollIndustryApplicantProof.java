@@ -12,7 +12,7 @@ public class InfoCollIndustryApplicantProof {
     private Integer id;
 
     // 关联案件ID
-    private Integer clientCaseId;
+    private Integer projectEvidenceId;
 
     // 行业申请人证明信息
     private String proofType;

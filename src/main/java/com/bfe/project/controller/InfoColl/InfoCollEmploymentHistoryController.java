@@ -17,7 +17,7 @@ public class InfoCollEmploymentHistoryController {
     @Autowired
     private InfoCollEmploymentHistoryService infoCollEmploymentHistoryService;
 
-    @PostMapping("/save-or-update")
+    @PostMapping("/upsert")
     public Map<String, Object> saveOrUpdate(@RequestBody List<InfoCollEmploymentHistory> employmentHistoryList) {
         Map<String, Object> result = new HashMap<>();
         

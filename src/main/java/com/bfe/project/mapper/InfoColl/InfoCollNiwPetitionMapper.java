@@ -2,9 +2,8 @@ package com.bfe.project.mapper.InfoColl;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.bfe.project.entity.InfoColl.InfoCollNiwPetition;
+import org.apache.ibatis.annotations.Mapper;
 
-/**
- * NIW 申请 Mapper 接口
- */
+@Mapper
 public interface InfoCollNiwPetitionMapper extends BaseMapper<InfoCollNiwPetition> {
 } 
