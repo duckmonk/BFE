@@ -11,6 +11,7 @@ import com.bfe.project.entity.InfoColl.InfoCollIndustryContribution;
 import com.bfe.project.entity.InfoColl.InfoCollIndustrySupplementalEvidence;
 import com.bfe.project.entity.InfoColl.InfoCollIndustryProjectEvidence;
 import com.bfe.project.entity.InfoColl.InfoCollIndustryApplicantProof;
+import com.bfe.project.entity.ClientCase;
 import com.bfe.project.service.InfoColl.InfoCollNiwPetitionService;
 import com.bfe.project.service.InfoColl.InfoCollAcademicContributionService;
 import com.bfe.project.service.InfoColl.InfoCollAcademicFundingService;
@@ -22,6 +23,7 @@ import com.bfe.project.service.InfoColl.InfoCollIndustryContributionService;
 import com.bfe.project.service.InfoColl.InfoCollIndustryProjectEvidenceService;
 import com.bfe.project.service.InfoColl.InfoCollIndustrySupplementalEvidenceService;
 import com.bfe.project.service.InfoColl.InfoCollIndustryApplicantProofService;
+import com.bfe.project.service.ClientCaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -67,6 +69,9 @@ public class InfoCollNiwPetitionController {
 
     @Autowired
     private InfoCollIndustryApplicantProofService industryApplicantProofService;
+
+    @Autowired
+    private ClientCaseService clientCaseService;
 
     @GetMapping("/case/{caseId}")
     public Map<String, Object> getByCaseId(@PathVariable("caseId") Integer caseId) {
@@ -286,6 +291,13 @@ public class InfoCollNiwPetitionController {
         niwPetition.setUserPath((String) data.get("userPath"));
         niwPetitionService.saveOrUpdate(niwPetition);
         Integer clientCaseId = niwPetition.getClientCaseId();
+
+        // 更新 ClientCase 的完成状态
+        ClientCase clientCase = clientCaseService.getById(clientCaseId);
+        if (clientCase != null) {
+            clientCase.setNiwPetitionFinished(true);
+            clientCaseService.updateById(clientCase);
+        }
 
         // 2. 处理学术部分（递归删除旧记录）
         List<InfoCollAcademicContribution> oldAcademicContributions = contributionService.lambdaQuery().eq(InfoCollAcademicContribution::getNiwPetitionId, niwPetition.getId()).list();

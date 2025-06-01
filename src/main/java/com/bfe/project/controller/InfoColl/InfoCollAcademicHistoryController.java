@@ -2,6 +2,8 @@ package com.bfe.project.controller.InfoColl;
 
 import com.bfe.project.entity.InfoColl.InfoCollAcademicHistory;
 import com.bfe.project.service.InfoColl.InfoCollAcademicHistoryService;
+import com.bfe.project.entity.ClientCase;
+import com.bfe.project.service.ClientCaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,24 +19,32 @@ public class InfoCollAcademicHistoryController {
     @Autowired
     private InfoCollAcademicHistoryService infoCollAcademicHistoryService;
 
-    @PostMapping("/upsert")
-    public Map<String, Object> saveOrUpdate(@RequestBody List<InfoCollAcademicHistory> academicHistoryList) {
+    @Autowired
+    private ClientCaseService clientCaseService;
+
+    @PostMapping("/upsert/{clientCaseId}")
+    public Map<String, Object> saveOrUpdate(@PathVariable Integer clientCaseId, @RequestBody List<InfoCollAcademicHistory> academicHistoryList) {
         Map<String, Object> result = new HashMap<>();
-        
-        if (academicHistoryList != null && !academicHistoryList.isEmpty()) {
-            // 获取第一个元素的clientCaseId（假设所有元素都有相同的clientCaseId）
-            Integer clientCaseId = academicHistoryList.get(0).getClientCaseId();
             
             // 删除该case下的所有academic history记录
             infoCollAcademicHistoryService.lambdaUpdate()
                     .eq(InfoCollAcademicHistory::getClientCaseId, clientCaseId)
                     .remove();
             
-            // 批量保存新的academic history记录
+        // 如果有新数据，则保存
+        if (academicHistoryList != null && !academicHistoryList.isEmpty()) {
+            // 确保所有记录都有正确的 clientCaseId
+            academicHistoryList.forEach(history -> history.setClientCaseId(clientCaseId));
             infoCollAcademicHistoryService.saveBatch(academicHistoryList);
             result.put("status", "updated");
+            
+            // 更新 ClientCase 的完成状态
+            clientCaseService.lambdaUpdate()
+                    .eq(ClientCase::getId, clientCaseId)
+                    .set(ClientCase::getAcademicHistoryFinished, true)
+                    .update();
         } else {
-            result.put("status", "no_data");
+            result.put("status", "deleted");
         }
         
         result.put("data", academicHistoryList);

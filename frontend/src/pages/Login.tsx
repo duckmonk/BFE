@@ -41,20 +41,26 @@ const Login: React.FC = () => {
         });
 
         setTimeout(() => {
-          navigate('/');
+          if (response.data.userType === 'client') {
+            navigate('/landing');
+          } else if (['employee', 'lawyer', 'marketing_manager', 'admin'].includes(response.data.userType)) {
+            navigate('/inquiry-dashboard');
+          } else {
+            navigate('/'); // 默认跳转或其他未处理的用户类型
+          }
           window.location.reload(); // 让Header刷新
         }, 1500);
       } else {
         setSnackbar({
           open: true,
-          message: `登录失败！${response.data.message}`,
+          message: `Login failed! ${response.data.message}`,
           severity: 'error'
         });
       }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: `登录失败！${error}`,
+        message: `Login failed! ${error}`,
         severity: 'error'
       });
     }

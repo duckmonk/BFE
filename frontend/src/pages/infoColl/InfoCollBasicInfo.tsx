@@ -1,17 +1,23 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { Box, Typography, TextField, MenuItem, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, TextField, MenuItem, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import FileUploadButton from '../../components/FileUploadButton';
 import { infoCollApi } from '../../services/api';
 import { extractFileName } from '../../services/s3Service';
+import { countryOptions } from '../../constants/countries';
 
 const genderOptions = ['Male', 'Female', 'Other'];
 const yesNoOptions = ['Yes', 'No'];
 const visaOptions = ['Visa Abroad', 'Adjust Status'];
-const countryOptions = ['USA', 'China', 'Canada', 'Other']; // 可根据需要扩展
 
-const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }, ref) => {
+interface FormErrors {
+  [key: string]: boolean;
+}
+
+const InfoCollBasicInfo = forwardRef(({ clientCaseId, userId }: { clientCaseId: number, userId: string }, ref) => {
   const [formData, setFormData] = useState<{ [key: string]: any }>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const [validationDialog, setValidationDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   useEffect(() => {
     if (clientCaseId) {
@@ -29,16 +35,22 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // 清除该字段的错误状态
+    setErrors(prev => ({ ...prev, [name]: false }));
   };
 
   // 下拉选择处理
   const handleSelectChange = (name: string) => (e: any) => {
     setFormData(prev => ({ ...prev, [name]: e.target.value }));
+    // 清除该字段的错误状态
+    setErrors(prev => ({ ...prev, [name]: false }));
   };
 
   // 上传文件回调
   const handleFileUrlChange = (name: string, url: string | null) => {
     setFormData(prev => ({ ...prev, [name]: url }));
+    // 清除该字段的错误状态
+    setErrors(prev => ({ ...prev, [name]: false }));
   };
 
   // 关闭snackbar
@@ -46,25 +58,101 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
+  // 验证表单
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    let isValid = true;
+
+    // 必填字段验证
+    const requiredFields = [
+      'firstName',
+      'lastName',
+      'email',
+      'gender',
+      'premiumProcessing',
+      'phoneNumber',
+      'dob',
+      'ssn',
+      'birthLocation',
+      'citizenship',
+      'usAddress',
+      'foreignAddressNative',
+      'foreignAddressEng',
+      'residenceCountry',
+      'visaStatus',
+      'kidsCount',
+      'immigrationPetition',
+      'maritalStatus'
+    ];
+
+    requiredFields.forEach(field => {
+      if (!formData[field]) {
+        newErrors[field] = true;
+        isValid = false;
+      }
+    });
+
+    // 文件上传验证
+    if (!formData.passport) {
+      newErrors.passport = true;
+      isValid = false;
+    }
+    if (!formData.i94) {
+      newErrors.i94 = true;
+      isValid = false;
+    }
+    if (formData.immigrationPetition === 'Yes' && !formData.petitionNotice) {
+      newErrors.petitionNotice = true;
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+
+    if (!isValid) {
+      setValidationDialog({
+        open: true,
+        message: 'Please fill in all required fields and upload required documents.'
+      });
+    }
+
+    return isValid;
+  };
+
   // 暴露方法给父组件
   useImperativeHandle(ref, () => ({
     getFormData: () => formData,
     submit: async (clientCase: any) => {
+      if (!validateForm()) {
+        return;
+      }
+
       try {
-        const data = { ...formData, clientCaseId: clientCase.clientCaseId }; // 只合并 clientCase.clientCaseId
+        const data = { ...formData, clientCaseId: clientCase.clientCaseId };
         await infoCollApi.submitBasicInfo(data);
-        setSnackbar({ open: true, message: '保存成功', severity: 'success' });
+        setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
       } catch (e: any) {
-        setSnackbar({ open: true, message: e?.message || '保存失败', severity: 'error' });
+        setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });
       }
     }
   }));
 
   return (
     <Box component="form" noValidate autoComplete="off">
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        Reminder: If you do not click Save, your changes will be lost.
+      </Alert>
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Basic Info</Typography>
+      
       {/* Respondents (autogenerated) */}
-      <TextField label="Respondents (autogenerated)" fullWidth size="small" sx={{ mb: 2 }} InputProps={{ readOnly: true }} value="自动生成" />
+      <TextField 
+        label="Respondents (autogenerated)" 
+        fullWidth 
+        size="small" 
+        sx={{ mb: 2 }} 
+        InputProps={{ readOnly: true }} 
+        value={userId} 
+      />
+
       {/* First Name */}
       <TextField
         name="firstName"
@@ -75,7 +163,10 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         value={formData.firstName || ''}
         onChange={handleChange}
         required
+        error={errors.firstName}
+        helperText={errors.firstName ? 'First Name is required' : ''}
       />
+
       {/* Middle Name */}
       <TextField
         name="middleName"
@@ -86,6 +177,7 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         value={formData.middleName || ''}
         onChange={handleChange}
       />
+
       {/* Last Name */}
       <TextField
         name="lastName"
@@ -96,7 +188,10 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         value={formData.lastName || ''}
         onChange={handleChange}
         required
+        error={errors.lastName}
+        helperText={errors.lastName ? 'Last Name is required' : ''}
       />
+
       {/* Full Name (autogenerated) */}
       <TextField
         name="fullName"
@@ -108,9 +203,10 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         value={
           (formData.firstName || '') +
           (formData.middleName ? ' ' + formData.middleName : '') +
-          (formData.lastName ? ' ' + formData.lastName : '') || '自动生成'
+          (formData.lastName ? ' ' + formData.lastName : '') || 'Auto generated'
         }
       />
+
       {/* Email */}
       <TextField
         name="email"
@@ -121,7 +217,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.email || ''}
         onChange={handleChange}
+        required
+        error={errors.email}
+        helperText={errors.email ? 'Email is required' : ''}
       />
+
       {/* Gender */}
       <TextField
         name="gender"
@@ -132,9 +232,13 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.gender || ''}
         onChange={handleSelectChange('gender')}
+        required
+        error={errors.gender}
+        helperText={errors.gender ? 'Gender is required' : ''}
       >
         {genderOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
       </TextField>
+
       {/* Premium Processing */}
       <TextField
         name="premiumProcessing"
@@ -145,9 +249,13 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.premiumProcessing || ''}
         onChange={handleSelectChange('premiumProcessing')}
+        required
+        error={errors.premiumProcessing}
+        helperText={errors.premiumProcessing ? 'Premium processing choice is required' : ''}
       >
         {yesNoOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
       </TextField>
+
       {/* Phone Number */}
       <TextField
         name="phoneNumber"
@@ -157,7 +265,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.phoneNumber || ''}
         onChange={handleChange}
+        required
+        error={errors.phoneNumber}
+        helperText={errors.phoneNumber ? 'Phone Number is required' : ''}
       />
+
       {/* Date of Birth */}
       <TextField
         name="dob"
@@ -169,7 +281,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         InputLabelProps={{ shrink: true }}
         value={formData.dob || ''}
         onChange={handleChange}
+        required
+        error={errors.dob}
+        helperText={errors.dob ? 'Date of Birth is required' : ''}
       />
+
       {/* SSN */}
       <TextField
         name="ssn"
@@ -179,7 +295,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.ssn || ''}
         onChange={handleChange}
+        required
+        error={errors.ssn}
+        helperText={errors.ssn ? 'SSN is required' : ''}
       />
+
       {/* City/Province/Country of Birth */}
       <TextField
         name="birthLocation"
@@ -189,7 +309,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.birthLocation || ''}
         onChange={handleChange}
+        required
+        error={errors.birthLocation}
+        helperText={errors.birthLocation ? 'Birth Location is required' : ''}
       />
+
       {/* Country of Citizenship */}
       <TextField
         name="citizenship"
@@ -200,9 +324,13 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.citizenship || ''}
         onChange={handleSelectChange('citizenship')}
+        required
+        error={errors.citizenship}
+        helperText={errors.citizenship ? 'Country of Citizenship is required' : ''}
       >
-        {countryOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
+        {countryOptions.map((opt: string) => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
       </TextField>
+
       {/* Current US Address */}
       <TextField
         name="usAddress"
@@ -212,7 +340,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.usAddress || ''}
         onChange={handleChange}
+        required
+        error={errors.usAddress}
+        helperText={errors.usAddress ? 'US Address is required' : ''}
       />
+
       {/* Foreign Address (Native Language) */}
       <TextField
         name="foreignAddressNative"
@@ -222,7 +354,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.foreignAddressNative || ''}
         onChange={handleChange}
+        required
+        error={errors.foreignAddressNative}
+        helperText={errors.foreignAddressNative ? 'Foreign Address in Native Language is required' : ''}
       />
+
       {/* Foreign Address (English) */}
       <TextField
         name="foreignAddressEng"
@@ -232,7 +368,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.foreignAddressEng || ''}
         onChange={handleChange}
+        required
+        error={errors.foreignAddressEng}
+        helperText={errors.foreignAddressEng ? 'Foreign Address in English is required' : ''}
       />
+
       {/* Current Country of Residence */}
       <TextField
         name="residenceCountry"
@@ -242,7 +382,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.residenceCountry || ''}
         onChange={handleChange}
+        required
+        error={errors.residenceCountry}
+        helperText={errors.residenceCountry ? 'Country of Residence is required' : ''}
       />
+
       {/* Will you apply for a visa abroad or adjust in the US? */}
       <TextField
         name="visaStatus"
@@ -253,9 +397,13 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.visaStatus || ''}
         onChange={handleSelectChange('visaStatus')}
+        required
+        error={errors.visaStatus}
+        helperText={errors.visaStatus ? 'Visa Status is required' : ''}
       >
         {visaOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
       </TextField>
+
       {/* How many kids do you have? */}
       <TextField
         name="kidsCount"
@@ -266,7 +414,11 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         value={formData.kidsCount || ''}
         onChange={handleChange}
         type="number"
+        required
+        error={errors.kidsCount}
+        helperText={errors.kidsCount ? 'Number of kids is required' : ''}
       />
+
       {/* Has any immigration petition been filed on your behalf? */}
       <TextField
         name="immigrationPetition"
@@ -277,9 +429,13 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.immigrationPetition || ''}
         onChange={handleSelectChange('immigrationPetition')}
+        required
+        error={errors.immigrationPetition}
+        helperText={errors.immigrationPetition ? 'Immigration Petition status is required' : ''}
       >
         {yesNoOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
       </TextField>
+
       {/* If yes, upload receipt/approval notice */}
       {formData.immigrationPetition === 'Yes' && (
         <FileUploadButton
@@ -287,8 +443,12 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
           fileType="petitionNotice"
           onFileUrlChange={url => handleFileUrlChange('petitionNotice', url)}
           required
+          error={errors.petitionNotice}
+          fileUrl={formData.petitionNotice}
+          fileName={formData.petitionNotice && extractFileName(formData.petitionNotice)}
         />
       )}
+
       {/* Copy of Passport */}
       <FileUploadButton
         label="Upload Copy of Passport (PDF)"
@@ -297,7 +457,9 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         required
         fileUrl={formData.passport}
         fileName={formData.passport && extractFileName(formData.passport)}
+        error={errors.passport}
       />
+
       {/* Copy of Old Passport (optional) */}
       <FileUploadButton
         label="Upload Copy of Old Passport (PDF, optional)"
@@ -306,6 +468,7 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         fileUrl={formData.oldPassport}
         fileName={formData.oldPassport && extractFileName(formData.oldPassport)}
       />
+
       {/* Copy of Visa Stamp (optional) */}
       <FileUploadButton
         label="Upload Copy of Visa Stamp (PDF, optional)"
@@ -314,15 +477,18 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         fileUrl={formData.visaStamp}
         fileName={formData.visaStamp && extractFileName(formData.visaStamp)}
       />
+
       {/* Copy of Most Recent I-94 */}
       <FileUploadButton
         label="Upload Copy of Most Recent I-94 (PDF)"
         fileType="i94"
         onFileUrlChange={url => handleFileUrlChange('i94', url)}
         required
+        error={errors.i94}
         fileUrl={formData.i94}
         fileName={formData.i94 && extractFileName(formData.i94)}
       />
+
       {/* Copy of Non-Immigrant Status Evidence (optional) */}
       <FileUploadButton
         label="Upload Copy of Non-Immigrant Status Evidence (PDF, optional)"
@@ -331,6 +497,7 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         fileUrl={formData.nonimmigrantStatus}
         fileName={formData.nonimmigrantStatus && extractFileName(formData.nonimmigrantStatus)}
       />
+
       {/* Are you single? */}
       <TextField
         name="maritalStatus"
@@ -341,9 +508,13 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
         sx={{ mb: 2 }}
         value={formData.maritalStatus || ''}
         onChange={handleSelectChange('maritalStatus')}
+        required
+        error={errors.maritalStatus}
+        helperText={errors.maritalStatus ? 'Marital Status is required' : ''}
       >
         {yesNoOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
       </TextField>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
@@ -354,6 +525,21 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId }: { clientCaseId: number }
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog
+        open={validationDialog.open}
+        onClose={() => setValidationDialog({ open: false, message: '' })}
+      >
+        <DialogTitle>Validation Error</DialogTitle>
+        <DialogContent>
+          <Typography>{validationDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidationDialog({ open: false, message: '' })}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 });

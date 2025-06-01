@@ -12,9 +12,9 @@ interface FormData {
 
 const About: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
-    firstName: 'Jane',
-    lastName: 'Smitherton',
-    email: 'email@janesfakedomain.net',
+    firstName: '',
+    lastName: '',
+    email: '',
     message: ''
   });
 
@@ -38,10 +38,9 @@ const About: React.FC = () => {
       await contactApi.submit(formData);
       setSnackbar({
         open: true,
-        message: '提交成功！',
+        message: 'Submit successfully!',
         severity: 'success'
       });
-      // 清空表单
       setFormData({
         firstName: '',
         lastName: '',
@@ -51,7 +50,7 @@ const About: React.FC = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error instanceof Error ? error.message : '提交失败，请稍后重试',
+        message: error instanceof Error ? error.message : 'Submit failed, please try again later',
         severity: 'error'
       });
     }
@@ -62,23 +61,31 @@ const About: React.FC = () => {
   };
 
   return (
-    <Box sx={{ bgcolor: '#fafafa', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ bgcolor: '#f3f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Container maxWidth="lg" sx={{ pt: 6, pb: 6, flex: 1 }}>
         <Grid container spacing={6} alignItems="flex-start">
           {/* 左侧内容 */}
           <Grid size={{ xs: 12, md: 7 }}>
             <Typography variant="h2" fontWeight={700} gutterBottom>
-              About
-            </Typography>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-              Subheading for description or instructions
+              About Us
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              Body text for your whole article or post. We'll put in some lorem ipsum to show how a filled-out page might look:
+              At Break Free Earth, we help talented professionals, researchers, and innovators navigate their U.S. immigration pathways and move their lives forward.
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-              Excepteur efficient emerging, minim veniam anim aute carefully curated Ginza conversation exquisite perfect nostrud nisi intricate Content. Qui  international first-class nulla ut. Punctual adipisicing, essential lovely queen tempor eiusmod irure. Exclusively izakaya charming Scandinavian impeccable aute quality of life soft power pariatur Melbourne occaecat discerning. Qui wardrobe aliquip, et Porter destination Toto remarkable officia Helsinki excepteur Basset hound. Zürich sleepy perfect consectetur.
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              We are a specialized consulting firm that collaborates with top immigration law firms to support employment-based visa applications, including the H-1B, EB-1, EB-2 NIW (National Interest Waiver), and O-1. While we do not provide legal representation ourselves, We partner with trusted attorneys to ensure that every petition meets all legal requirements.
             </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Our role is to help you build a compelling case. We focus on strategy, personal narrative development, and presenting your professional achievements in a way that aligns with eligibility criteria. Whether you're pursuing an extraordinary ability visa or a national interest waiver, we bring structure, clarity, and storytelling expertise to your application.
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Break Free Earth was founded by professionals from leading technology companies who have personally experienced the challenges of global mobility. We've been through the visa process ourselves and we understand how overwhelming, high-stakes, and personal it can feel.
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              We believe your talent shouldn't be limited by borders and we're here to help you take the next step with confidence.
+            </Typography>
+
+            {/* Contact Form */}
             <Box sx={{ mt: 6 }} component="form" onSubmit={handleSubmit}>
               <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
                 Contact me
@@ -141,11 +148,12 @@ const About: React.FC = () => {
               </Grid>
             </Box>
           </Grid>
+
           {/* 右侧图片 */}
           <Grid size={{ xs: 12, md: 5 }}>
             <Paper elevation={0} sx={{ overflow: 'hidden', borderRadius: 3, boxShadow: 0, bgcolor: 'transparent' }}>
               <img
-                src="https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=facearea&w=400&h=500&q=80"
+                src="https://breakfree.earth/wp-content/uploads/2025/03/pexels-photo-3183151.jpeg"
                 alt="profile"
                 style={{ width: '100%', borderRadius: 16, objectFit: 'cover', background: '#eee' }}
               />

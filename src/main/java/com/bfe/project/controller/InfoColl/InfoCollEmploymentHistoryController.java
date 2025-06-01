@@ -2,6 +2,8 @@ package com.bfe.project.controller.InfoColl;
 
 import com.bfe.project.entity.InfoColl.InfoCollEmploymentHistory;
 import com.bfe.project.service.InfoColl.InfoCollEmploymentHistoryService;
+import com.bfe.project.entity.ClientCase;
+import com.bfe.project.service.ClientCaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,24 +19,32 @@ public class InfoCollEmploymentHistoryController {
     @Autowired
     private InfoCollEmploymentHistoryService infoCollEmploymentHistoryService;
 
-    @PostMapping("/upsert")
-    public Map<String, Object> saveOrUpdate(@RequestBody List<InfoCollEmploymentHistory> employmentHistoryList) {
+    @Autowired
+    private ClientCaseService clientCaseService;
+
+    @PostMapping("/upsert/{clientCaseId}")
+    public Map<String, Object> saveOrUpdate(@PathVariable Integer clientCaseId, @RequestBody List<InfoCollEmploymentHistory> employmentHistoryList) {
         Map<String, Object> result = new HashMap<>();
-        
-        if (employmentHistoryList != null && !employmentHistoryList.isEmpty()) {
-            // 获取第一个元素的clientCaseId（假设所有元素都有相同的clientCaseId）
-            Integer clientCaseId = employmentHistoryList.get(0).getClientCaseId();
             
             // 删除该case下的所有employment history记录
             infoCollEmploymentHistoryService.lambdaUpdate()
                     .eq(InfoCollEmploymentHistory::getClientCaseId, clientCaseId)
                     .remove();
             
-            // 批量保存新的employment history记录
+        // 如果有新数据，则保存
+        if (employmentHistoryList != null && !employmentHistoryList.isEmpty()) {
+            // 确保所有记录都有正确的 clientCaseId
+            employmentHistoryList.forEach(history -> history.setClientCaseId(clientCaseId));
             infoCollEmploymentHistoryService.saveBatch(employmentHistoryList);
             result.put("status", "updated");
+            
+            // 更新 ClientCase 的完成状态
+            clientCaseService.lambdaUpdate()
+                    .eq(ClientCase::getId, clientCaseId)
+                    .set(ClientCase::getEmploymentHistoryFinished, true)
+                    .update();
         } else {
-            result.put("status", "no_data");
+            result.put("status", "deleted");
         }
         
         result.put("data", employmentHistoryList);

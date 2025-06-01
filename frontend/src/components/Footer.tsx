@@ -1,43 +1,63 @@
 import React from 'react';
 import { Container, Typography, Box } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import FacebookIcon from '@mui/icons-material/Facebook';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import YouTubeIcon from '@mui/icons-material/YouTube';
-import InstagramIcon from '@mui/icons-material/Instagram';
 
 const Footer: React.FC = () => (
-  <Box sx={{ bgcolor: '#fff', py: 4, mt: 8, borderTop: '1px solid #eee' }}>
+  <Box sx={{ bgcolor: '#f3f2ee', padding: 'clamp(3rem, 6.59vw, 5.5rem) clamp(1.75rem, 4.19vw, 3.5rem)' }}>
     <Container maxWidth="lg">
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Site name</Typography>
-          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-            <FacebookIcon fontSize="small" sx={{ color: '#888' }} />
-            <LinkedInIcon fontSize="small" sx={{ color: '#888' }} />
-            <YouTubeIcon fontSize="small" sx={{ color: '#888' }} />
-            <InstagramIcon fontSize="small" sx={{ color: '#888' }} />
+      <Grid container spacing={{ xs: 4, md: 'clamp(1.75rem, 4.19vw, 3.5rem)' }} justifyContent="space-between">
+        <Grid>
+          <Typography variant="h4" fontWeight={500} sx={{ fontFamily: 'Lucette, sans-serif', mb: 2 }}>
+            Break Free Earth
+          </Typography>
+        </Grid>
+        <Grid>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <Typography
+              variant="body2"
+              sx={{
+                mb: 1,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                textAlign: 'right',
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              About
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                mb: 1,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                textAlign: 'right',
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              Disclaimer
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                mb: 1,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                textAlign: 'right',
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              Terms and Conditions
+            </Typography>
           </Box>
         </Grid>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Typography variant="subtitle2" fontWeight={700}>Topic</Typography>
-          <Typography variant="body2">Page</Typography>
-          <Typography variant="body2">Page</Typography>
-          <Typography variant="body2">Page</Typography>
-        </Grid>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Typography variant="subtitle2" fontWeight={700}>Topic</Typography>
-          <Typography variant="body2">Page</Typography>
-          <Typography variant="body2">Page</Typography>
-          <Typography variant="body2">Page</Typography>
-        </Grid>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Typography variant="subtitle2" fontWeight={700}>Topic</Typography>
-          <Typography variant="body2">Page</Typography>
-          <Typography variant="body2">Page</Typography>
-          <Typography variant="body2">Page</Typography>
-        </Grid>
       </Grid>
+      <Typography variant="body2" sx={{ textAlign: 'center', mt: 4, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+        © 2025 Break Free Earth LLC. All rights reserved.
+      </Typography>
     </Container>
   </Box>
 );

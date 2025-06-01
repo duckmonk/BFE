@@ -39,7 +39,7 @@ const TaskRecommendationLetters = ({ clientCaseId }: { clientCaseId: number }) =
     }
   }, [clientCaseId]);
 
-  // 检查是否所有之前的推荐信都已确认
+  // 检查是否所有之前的推荐信都Approved
   const canEditLetter = (index: number) => {
     return letters.slice(0, index).every(letter => letter.rlConfirm === 'YES');
   };
@@ -59,17 +59,18 @@ const TaskRecommendationLetters = ({ clientCaseId }: { clientCaseId: number }) =
               Recommendation Letter for {letter.refereeName}
               {letter.rlConfirm === 'YES' && (
                 <Typography component="span" sx={{ ml: 2, color: 'success.main' }}>
-                  (已确认)
+                  (Confirmed)
                 </Typography>
               )}
             </Typography>
           </AccordionSummary>
           <AccordionDetails>
             <TaskForm
-              title={`Recommendation Letter for ${letter.refereeName}`}
+              title=""
               clientCaseId={clientCaseId}
               initialData={letter}
               draftField="rlDraft"
+              draftType="file"
               feedbackField="rlOverallFeedback"
               confirmationField="rlConfirm"
               uploadField="rlSignedLetter"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Container, Typography, Grid, Paper, Button, Stack, Dialog, DialogContent } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import TaskEndeavorSubmission from './tasks/TaskEndeavorSubmission';
@@ -8,7 +8,9 @@ import TaskSubstantialMerits from './tasks/TaskSubstantialMerits';
 import TaskRecommendationLetters from './tasks/TaskRecommendationLetters';
 import TaskWellPositioned from './tasks/TaskWellPositioned';
 import TaskBalancingFactors from './tasks/TaskBalancingFactors';
-import { clientCaseApi } from '../services/api';
+import TaskFinalQuestionnaire from './tasks/TaskFinalQuestionnaire';
+import { clientCaseApi, taskApi } from '../services/api';
+import { getEnabledTasks } from '../utils/taskUtils';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +21,10 @@ const LandingPage: React.FC = () => {
   const [openTask5Dialog, setOpenTask5Dialog] = useState(false);
   const [openTask6Dialog, setOpenTask6Dialog] = useState(false);
   const [openTask7Dialog, setOpenTask7Dialog] = useState(false);
+  const [openTask8Dialog, setOpenTask8Dialog] = useState(false);
   const [clientCase, setClientCase] = useState<any | null>(null);
+  const [pendingRLs, setPendingRLs] = useState<string[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
 
   // 添加任务映射关系
   const taskMapping: { [key: string]: string } = {
@@ -29,26 +34,53 @@ const LandingPage: React.FC = () => {
     'recommendation_letters': 'Task 5: Recommendation Letters',
     'national_importance': 'Task 2: National Importance',
     'future_plan': 'Task 3: Future Plan',
-    'well_positioned': 'Task 6: Well Positioned'
+    'well_positioned': 'Task 6: Well Positioned',
+    'final_questionnaire': 'Task 8: Final Questionnaire'
   };
+
+  const enabledTasks = useMemo(() => getEnabledTasks(clientCase?.tasksStatus), [clientCase?.tasksStatus]);
 
   // 检查任务是否启用
   const isTaskEnabled = (taskLabel: string) => {
-    if (!clientCase?.enabledTasks) return false;
     const taskKey = Object.entries(taskMapping).find(([_, label]) => label === taskLabel)?.[0];
-    return taskKey ? clientCase.enabledTasks.includes(taskKey) : false;
+    return taskKey ? enabledTasks.has(taskKey) : false;
+  };
+
+  // 刷新任务状态
+  const refreshCaseAndTasks = async () => {
+    try {
+      const res = await clientCaseApi.getCurrentCase();
+      setClientCase(res.data);
+      // 获取推荐信未完成子任务
+      if (res.data?.clientCaseId) {
+        const rlRes = await taskApi.getRecommendationLetters(res.data.clientCaseId);
+        if (Array.isArray(rlRes.data)) {
+          const unfinished = rlRes.data.filter((rl: any) => String(rl.rlConfirm).toUpperCase() !== 'YES').map((rl: any, idx: number) => `Task 5.${idx + 1}: ${rl.refereeName}`);
+          setPendingRLs(unfinished);
+        }
+      }
+    } catch (e) {
+      setClientCase(null);
+      setPendingRLs([]);
+    }
+  };
+
+  // 创建新的 case
+  const handleCreateCase = async () => {
+    try {
+      setIsCreating(true);
+      const res = await clientCaseApi.createCase();
+      setClientCase(res.data);
+      navigate('/case-details');
+    } catch (e) {
+      console.error('Error creating case:', e);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   useEffect(() => {
-    const fetchCase = async () => {
-      try {
-        const res = await clientCaseApi.getCurrentCase();
-        setClientCase(res.data);
-      } catch (e) {
-        setClientCase(null);
-      }
-    };
-    fetchCase();
+    refreshCaseAndTasks();
   }, []);
 
   const handleTask1Click = () => {
@@ -93,36 +125,55 @@ const LandingPage: React.FC = () => {
     }
   };
 
+  const handleTask8Click = () => {
+    if (isTaskEnabled('Task 8: Final Questionnaire')) {
+      setOpenTask8Dialog(true);
+    }
+  };
+
+  // 任务弹窗关闭时刷新
   const handleCloseTask1Dialog = () => {
     setOpenTask1Dialog(false);
+    refreshCaseAndTasks();
   };
 
   const handleCloseTask2Dialog = () => {
     setOpenTask2Dialog(false);
+    refreshCaseAndTasks();
   };
 
   const handleCloseTask3Dialog = () => {
     setOpenTask3Dialog(false);
+    refreshCaseAndTasks();
   };
 
   const handleCloseTask4Dialog = () => {
     setOpenTask4Dialog(false);
+    refreshCaseAndTasks();
   };
 
   const handleCloseTask5Dialog = () => {
     setOpenTask5Dialog(false);
+    refreshCaseAndTasks();
   };
 
   const handleCloseTask6Dialog = () => {
     setOpenTask6Dialog(false);
+    refreshCaseAndTasks();
   };
 
   const handleCloseTask7Dialog = () => {
     setOpenTask7Dialog(false);
+    refreshCaseAndTasks();
+  };
+
+  const handleCloseTask8Dialog = () => {
+    setOpenTask8Dialog(false);
+    refreshCaseAndTasks();
   };
 
   return (
-    <Box sx={{ bgcolor: '#fafbfc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ bgcolor: '#f3f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Container maxWidth="lg" sx={{ pt: 6, pb: 6, flex: 1 }}>
         <Box sx={{ display: 'flex', gap: 4 }}>
           {/* 左侧 */}
@@ -173,7 +224,7 @@ const LandingPage: React.FC = () => {
                       >
                         <Typography variant="body2" color="text.secondary" fontWeight={600}>(Our To-Do)</Typography>
                         <Typography variant="subtitle1" fontWeight={700}>
-                          Task 1: Endeavor
+                          {clientCase?.tasksStatus?.endeavor_submission ? '✅ ' : ''}Task 1: Endeavor
                         </Typography>
                       </Box>
                     </Grid>
@@ -198,7 +249,7 @@ const LandingPage: React.FC = () => {
                       >
                         <Typography variant="body2" color="text.secondary" fontWeight={600}>(Our To-Do)</Typography>
                         <Typography variant="subtitle1" fontWeight={700}>
-                          Task 2: National Importance
+                          {clientCase?.tasksStatus?.national_importance ? '✅ ' : ''}Task 2: National Importance
                         </Typography>
                       </Box>
                     </Grid>
@@ -212,39 +263,49 @@ const LandingPage: React.FC = () => {
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, md: 4 }}>
                     <Box 
-                      sx={{ 
+                      sx={{
                         bgcolor: '#F9FAFC', 
                         border: '2px solid #cfd8dc', 
                         borderRadius: 2, 
                         p: 2, 
                         mb: 1, 
-                        height: '50%',
+                        height: '100%',
                         opacity: isTaskEnabled('Task 3: Future Plan') ? 1 : 0.5,
                         cursor: isTaskEnabled('Task 3: Future Plan') ? 'pointer' : 'not-allowed'
                       }}
                       onClick={handleTask3Click}
                     >
                       <Typography variant="body2" color="text.secondary" fontWeight={600}>(Your To-Do)</Typography>
-                      <Typography variant="subtitle1" fontWeight={700}>Task 3: Future Plan</Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        {clientCase?.tasksStatus?.future_plan ? '✅ ' : ''}Task 3:
+                      </Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        Future Plan
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">"After Task 2 completion"</Typography>
                     </Box>
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
                     <Box 
-                      sx={{ 
+                      sx={{
                         bgcolor: '#F9FAFC', 
                         border: '2px solid #cfd8dc', 
                         borderRadius: 2, 
                         p: 2, 
                         mb: 1, 
-                        height: '50%',
+                        height: '100%',
                         opacity: isTaskEnabled('Task 4: Substantial Merit') ? 1 : 0.5,
                         cursor: isTaskEnabled('Task 4: Substantial Merit') ? 'pointer' : 'not-allowed'
                       }}
                       onClick={handleTask4Click}
                     >
                       <Typography variant="body2" color="text.secondary" fontWeight={600}>(Our To-Do)</Typography>
-                      <Typography variant="subtitle1" fontWeight={700}>Task 4: Substantial Merit</Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        {clientCase?.tasksStatus?.substantial_merits ? '✅ ' : ''}Task 4:
+                      </Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        Substantial Merit
+                      </Typography>
                     </Box>
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
@@ -262,12 +323,17 @@ const LandingPage: React.FC = () => {
                       onClick={handleTask5Click}
                     >
                       <Typography variant="body2" color="text.secondary" fontWeight={600}>(Shared To-Do)</Typography>
-                      <Typography variant="subtitle1" fontWeight={700}>Task 5: Recommendation Letters</Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        {clientCase?.tasksStatus?.recommendation_letters ? '✅ ' : ''}Task 5:
+                      </Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        Recommendation Letters
+                      </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: 13 }}>
-                        - Task 5.1: RL 1<br />
-                        - Task 5.2: RL 2<br />
-                        - Task 5.3: RL 3<br />
-                        - Task 5.4: RL 4
+                        {pendingRLs.slice(0, 3).map((rl, idx) => (
+                          <span key={rl}>- {rl}<br /></span>
+                        ))}
+                        {pendingRLs.length > 3 && <span>- ...</span>}
                       </Typography>
                     </Box>
                   </Grid>
@@ -286,7 +352,7 @@ const LandingPage: React.FC = () => {
                       onClick={handleTask6Click}
                     >
                       <Typography variant="body2" color="text.secondary" fontWeight={600}>(Our To-Do)</Typography>
-                      <Typography variant="subtitle1" fontWeight={700}>Task 6: Well Positioned</Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>{clientCase?.tasksStatus?.well_positioned ? '✅ ' : ''}Task 6: Well Positioned</Typography>
                     </Box>
                   </Grid>
                   <Grid size={{ xs: 12, md: 6 }}>
@@ -304,23 +370,29 @@ const LandingPage: React.FC = () => {
                       onClick={handleTask7Click}
                     >
                       <Typography variant="body2" color="text.secondary" fontWeight={600}>(Our To-Do)</Typography>
-                      <Typography variant="subtitle1" fontWeight={700}>Task 7: Prong 3</Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>{clientCase?.tasksStatus?.balancing_factors ? '✅ ' : ''}Task 7: Prong 3</Typography>
                     </Box>
                   </Grid>
                   <Grid size={{ xs: 12 }}>
-                    <Box sx={{ 
+                    <Box 
+                      sx={{ 
                       bgcolor: '#F9FAFC', 
                       border: '2px solid #cfd8dc', 
                       borderRadius: 2, 
                       p: 2, 
                       height: '100%',
-                      opacity: isTaskEnabled('Task 8: Final Forms') ? 1 : 0.5,
-                      cursor: isTaskEnabled('Task 8: Final Forms') ? 'pointer' : 'not-allowed'
-                    }}>
+                        opacity: isTaskEnabled('Task 8: Final Questionnaire') ? 1 : 0.5,
+                        cursor: isTaskEnabled('Task 8: Final Questionnaire') ? 'pointer' : 'not-allowed',
+                        '&:hover': {
+                          bgcolor: isTaskEnabled('Task 8: Final Questionnaire') ? '#f0f4f8' : undefined,
+                        }
+                      }}
+                      onClick={handleTask8Click}
+                    >
                       <Typography variant="body2" color="text.secondary" fontWeight={600}>(Shared To-Do)</Typography>
-                      <Typography variant="subtitle1" fontWeight={700}>Task 8: Final Forms</Typography>
+                      <Typography variant="subtitle1" fontWeight={700}>{clientCase?.tasksStatus?.final_questionnaire ? '✅ ' : ''}Task 8: Final Questionnaire</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
-                        Forms & Documentation
+                        Final Review & Confirmation
                       </Typography>
                     </Box>
                   </Grid>
@@ -395,9 +467,10 @@ const LandingPage: React.FC = () => {
             variant="contained"
             size="large"
             sx={{ bgcolor: '#000', color: '#fff', borderRadius: 2, fontWeight: 700, px: 6, py: 1.5 }}
-            onClick={() => navigate('/case-details')}
+            onClick={clientCase?.status === 'success' ? () => navigate('/case-details') : handleCreateCase}
+            disabled={isCreating}
           >
-            Begin NIW Application Process
+            {isCreating ? 'Creating...' : clientCase?.status === 'success' ? 'Continue NIW Application Process' : 'Begin NIW Application Process'}
           </Button>
         </Box>
         <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -530,6 +603,24 @@ const LandingPage: React.FC = () => {
       >
         <DialogContent sx={{ p: 3 }}>
           <TaskBalancingFactors clientCaseId={clientCase?.clientCaseId} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Task 8 Dialog */}
+      <Dialog 
+        open={openTask8Dialog} 
+        onClose={handleCloseTask8Dialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          }
+        }}
+      >
+        <DialogContent sx={{ p: 3 }}>
+          <TaskFinalQuestionnaire clientCaseId={clientCase?.clientCaseId} userId={clientCase?.userId} />
         </DialogContent>
       </Dialog>
     </Box>

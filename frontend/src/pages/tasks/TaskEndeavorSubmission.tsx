@@ -8,6 +8,8 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
   const [formData, setFormData] = useState<{ [key: string]: any }>({});
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const userType = getUserType();
+  const [localChecked, setLocalChecked] = useState(false);
+  const [approving, setApproving] = useState(false);
 
   const isApproved = userType === 'client' && formData.endeavorConfirm === 'YES';
 
@@ -16,6 +18,11 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
       taskApi.getEndeavorSubmission(clientCaseId).then(res => {
         if (res && res.data) {
           setFormData(res.data);
+          if (res.data.endeavorConfirm === 'YES') {
+            setLocalChecked(true);
+          } else {
+            setLocalChecked(false);
+          }
         }
       }).catch(() => {
         // 可以加错误提示
@@ -45,9 +52,9 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
     try {
       const data = { ...formData, clientCaseId };
       await taskApi.submitEndeavorSubmission(data);
-      setSnackbar({ open: true, message: '同步成功', severity: 'success' });
+      setSnackbar({ open: true, message: 'Sync successfully', severity: 'success' });
     } catch (e: any) {
-      setSnackbar({ open: true, message: e?.message || '同步失败', severity: 'error' });
+      setSnackbar({ open: true, message: e?.message || 'Sync failed', severity: 'error' });
     }
   };
 
@@ -55,7 +62,7 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
   const handleCopy = () => {
     if (formData.endeavorFeedback) {
       navigator.clipboard.writeText(formData.endeavorFeedback);
-      setSnackbar({ open: true, message: '复制成功', severity: 'success' });
+      setSnackbar({ open: true, message: 'Copy successfully', severity: 'success' });
     }
   };
 
@@ -64,21 +71,24 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
     try {
       const data = { ...formData, clientCaseId, endeavorConfirm: 'NO' };
       await taskApi.submitEndeavorSubmission(data);
-      setSnackbar({ open: true, message: '反馈已提交', severity: 'success' });
+      setSnackbar({ open: true, message: 'Feedback submitted', severity: 'success' });
     } catch (e: any) {
-      setSnackbar({ open: true, message: e?.message || '提交失败', severity: 'error' });
+      setSnackbar({ open: true, message: e?.message || 'Submit feedback failed', severity: 'error' });
     }
   };
 
   // client端approve
   const handleApprove = async () => {
+    setApproving(true);
+    setFormData(prev => ({ ...prev, endeavorConfirm: 'YES' }));
     try {
       const data = { ...formData, clientCaseId, endeavorConfirm: 'YES' };
       await taskApi.submitEndeavorSubmission(data);
-      setSnackbar({ open: true, message: '已确认', severity: 'success' });
+      setSnackbar({ open: true, message: 'Approved', severity: 'success' });
     } catch (e: any) {
-      setSnackbar({ open: true, message: e?.message || '提交失败', severity: 'error' });
+      setSnackbar({ open: true, message: e?.message || 'Submit failed', severity: 'error' });
     }
+    setApproving(false);
   };
 
   // 暴露方法给父组件
@@ -88,9 +98,9 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
       try {
         const data = { ...formData, clientCaseId: clientCase.clientCaseId };
         await taskApi.submitEndeavorSubmission(data);
-        setSnackbar({ open: true, message: '保存成功', severity: 'success' });
+        setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
       } catch (e: any) {
-        setSnackbar({ open: true, message: e?.message || '保存失败', severity: 'error' });
+        setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });
       }
     }
   }));
@@ -144,7 +154,7 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
           onClick={handleSubmitFeedback}
           sx={{ mb: 3 }}
         >
-          提交反馈
+          Submit feedback
         </Button>
       )}
 
@@ -153,23 +163,21 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
       <FormControlLabel
         control={
           <Checkbox
-            name="endeavorConfirm"
-            checked={formData.endeavorConfirm === 'YES'}
-            onChange={handleCheckboxChange}
-            required
+            checked={localChecked}
+            onChange={e => setLocalChecked(e.target.checked)}
             disabled={isApproved}
           />
         }
         label="I approve this final version"
       />
-      {formData.endeavorConfirm === 'NO' && (
+      {localChecked && !isApproved && (
         <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mb: 2 }}>
           (Uncheck: I request further changes)
         </Typography>
       )}
 
-      {/* Final Version of Endeavor - 仅在确认后显示 */}
-      {formData.endeavorConfirm === 'YES' && (
+      {/* Final Version of Endeavor - 仅在本地勾选后显示 */}
+      {localChecked && (
         <>
           <Typography variant="subtitle1" fontWeight={600} sx={{ mt: 3, mb: 1 }}>Final Version of Endeavor</Typography>
           <TextField
@@ -183,19 +191,19 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
             value={formData.endeavorDraft || ''} // 使用 endeavorDraft 的内容
             required
           />
+          {/* client端勾选后才出现Approve按钮 */}
+          {userType === 'client' && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleApprove}
+              sx={{ mb: 3, mt: 4 }}
+              disabled={isApproved || approving}
+            >
+              {isApproved ? 'Approved' : (approving ? 'Approving...' : 'Approve')}
+            </Button>
+          )}
         </>
-      )}
-      {/* client端勾选后出现Approve按钮 */}
-      {userType === 'client' && (
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleApprove}
-          sx={{ mb: 3, mt: 4 }}
-          disabled={isApproved}
-        >
-          {isApproved ? '已确认' : 'Approve'}
-        </Button>
       )}
 
       <Snackbar

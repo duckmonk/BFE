@@ -33,7 +33,7 @@ api.interceptors.response.use(
   },
   (error) => {
     // 统一错误处理
-    const message = error.response?.data?.message || '请求失败，请稍后重试';
+    const message = error.response?.data?.message || 'Request failed, please try again later';
     return Promise.reject(new Error(message));
   }
 );
@@ -50,7 +50,15 @@ export const inquiryApi = {
   submit: async (data: any): Promise<any> => {
     return api.post(`${API_PATHS.INQUIRY}/save`, data);
   },
-  getInquiries: (params?: { dateStart?: number; dateEnd?: number }) => {
+  update: async (data: any): Promise<any> => {
+    return api.put(`${API_PATHS.INQUIRY}/update`, data);
+  },
+  getInquiries: (params?: { 
+    dateStart?: number; 
+    dateEnd?: number;
+    userType?: string;
+    userId?: number;
+  }) => {
     return api.get(`${API_PATHS.INQUIRY}/page`, { params });
   }
 };
@@ -59,15 +67,39 @@ export const clientCaseApi = {
   getCurrentCase: async (): Promise<any> => {
     return api.get(`${API_PATHS.CLIENT_CASE}/current`);
   },
-  getCaseByUserId: async (userId: number): Promise<any> => {
-    return api.get(`${API_PATHS.CLIENT_CASE}/user/${userId}`);
+  getCaseByUserId: async (userId: number): Promise<{ status: string; caseId?: number }> => {
+    const response = await api.get(`${API_PATHS.CLIENT_CASE}/user/${userId}`);
+    return response.data;
   },
   getCaseById: async (clientCaseId: number): Promise<any> => {
     return api.get(`${API_PATHS.CLIENT_CASE}/${clientCaseId}`);
   },
   getCases: async (params?: { current?: number; size?: number; dateStart?: number; dateEnd?: number }): Promise<any> => {
     return api.get(`${API_PATHS.CLIENT_CASE}/page`, { params });
-  }
+  },
+  getTasksStatus: async (clientCaseId: number): Promise<any> => {
+    return api.get(`/task/center/tasks-status/${clientCaseId}`);
+  },
+  createCase: async (): Promise<any> => {
+    return api.post(`${API_PATHS.CLIENT_CASE}/create`);
+  },
+  saveAndPreviewLatex: async (caseId: number, latexContent: string): Promise<Blob> => {
+    const response = await api.post(`${API_PATHS.CLIENT_CASE}/save-and-preview-latex?caseId=${caseId}`, latexContent, {
+      headers: { 'Content-Type': 'text/plain' },
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+  update: async (data: any): Promise<any> => {
+    return api.put(`${API_PATHS.CLIENT_CASE}/update`, data);
+  },
+  getCombinedPdf: (caseId: number, formData: FormData) => 
+    api.post(`${API_PATHS.CLIENT_CASE}/${caseId}/combined-pdf`, formData, {
+      responseType: 'blob',
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }),
 };
 
 export const infoCollApi = {
@@ -98,14 +130,14 @@ export const infoCollApi = {
   getAcademicHistory: (clientCaseId: number) => {
     return api.get(`${API_PATHS.INFO_COLL}/academic-history/case/${clientCaseId}`);
   },
-  submitAcademicHistory: (data: any) => {
-    return api.post(`${API_PATHS.INFO_COLL}/academic-history/upsert`, data);
+  submitAcademicHistory: (clientCaseId: number, data: any) => {
+    return api.post(`${API_PATHS.INFO_COLL}/academic-history/upsert/${clientCaseId}`, data);
   },
   getEmploymentHistory: async (clientCaseId: number): Promise<any> => {
     return api.get(`${API_PATHS.INFO_COLL}/employment-history/case/${clientCaseId}`);
   },
-  submitEmploymentHistory: async (data: any): Promise<any> => {
-    return api.post(`${API_PATHS.INFO_COLL}/employment-history/upsert`, data);
+  submitEmploymentHistory: async (clientCaseId: number, data: any): Promise<any> => {
+    return api.post(`${API_PATHS.INFO_COLL}/employment-history/upsert/${clientCaseId}`, data);
   },
   getRecommender: async (clientCaseId: number): Promise<any> => {
     return api.get(`${API_PATHS.INFO_COLL}/recommender/case/${clientCaseId}`);
@@ -169,31 +201,7 @@ export const infoCollApi = {
   getContributions: async (clientCaseId: number): Promise<any> => {
     return api.get(`${API_PATHS.INFO_COLL}/niw-petition/contributions/${clientCaseId}`);
   },
-  getFinalQuestionnaire: async (clientCaseId: number): Promise<any> => {
-    return api.get(`${API_PATHS.INFO_COLL}/final-questionnaire/case/${clientCaseId}`);
-  },
-  submitFinalQuestionnaire: async (data: {
-    id?: number;
-    clientCaseId: number;
-    respondents: string;
-    changesSelected: string[];
-    passportChanges: string;
-    passportDocuments: string;
-    addressChanges: string;
-    employerChanges: string;
-    i94Changes: string;
-    i94Documents: string;
-    marriageStatus: string;
-    spouseSubmission: string;
-    childrenStatus: string;
-    childrenSubmission: string;
-    immigrationUpdates: string;
-    immigrationDocuments: string;
-  }): Promise<any> => {
-    return api.post(`${API_PATHS.INFO_COLL}/final-questionnaire/upsert`, data);
-  },
 };
-
 
 export const taskApi = {
   getEndeavorSubmission: async (clientCaseId: number): Promise<any> => {
@@ -273,6 +281,29 @@ export const taskApi = {
     confirm: string;
   }) => {
     return api.post(`${API_PATHS.TASK}/balancing-factors/submit`, data);
+  },
+  getFinalQuestionnaire: async (clientCaseId: number): Promise<any> => {
+    return api.get(`${API_PATHS.TASK}/final-questionnaire/case/${clientCaseId}`);
+  },
+  submitFinalQuestionnaire: (data: {
+    id?: number;
+    clientCaseId: number;
+    respondents: string;
+    changesSelected: string[];
+    passportChanges: string;
+    passportDocuments: string;
+    addressChanges: string;
+    employerChanges: string;
+    i94Changes: string;
+    i94Documents: string;
+    marriageStatus: string;
+    spouseSubmission: string;
+    childrenStatus: string;
+    childrenSubmission: string;
+    immigrationUpdates: string;
+    immigrationDocuments: string;
+  }) => {
+    return api.post(`${API_PATHS.TASK}/final-questionnaire/upsert`, data);
   }
 };
 
@@ -299,7 +330,14 @@ export const userApi = {
   },
   createUserByInquiry: async (data: { inquiryId: number; email: string; name: string }) => {
     return api.post('/user/createByInquiry', data);
-  }
+  },
+  resetPassword: async (oldPassword: string, newPassword: string) => {
+    return api.post('/user/resetPassword', { oldPassword, newPassword });
+  },
+  createUser: (data: { userType: string; name: string; password: string; email: string }) => api.post('/user/create', data),
+  getUsersList: () => api.get('/user/list'),
+  getLawyers: () => api.get('/user/lawyers'),
+  getEmployees: () => api.get('/user/employees'),
 };
 
 export const caseApi = {
@@ -308,11 +346,3 @@ export const caseApi = {
   }
 };
 
-export const latexApi = {
-  renderLatex: async (latex: string): Promise<{ png: string; pdf: string }> => {
-    const response = await api.post('/latex/render', latex, {
-      headers: { 'Content-Type': 'text/plain' }
-    });
-    return response.data;
-  }
-};

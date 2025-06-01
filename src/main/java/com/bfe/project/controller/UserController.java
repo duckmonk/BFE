@@ -32,13 +32,13 @@ public class UserController {
             User user = getByEmail(email);
             if (user == null) {
                 result.put("status", "error");
-                result.put("message", "用户不存在");
+                result.put("message", "User does not exist");
                 return result;
             }
             
             if (!user.getPassword().equals(password)) {
                 result.put("status", "error");
-                result.put("message", "密码错误");
+                result.put("message", "Password is incorrect");
                 return result;
             }
             
@@ -48,7 +48,7 @@ public class UserController {
             result.put("userId", user.getId());
             result.put("userName", user.getName());
             result.put("email", user.getEmail());
-            System.out.println("登录成功: " + StpUtil.getLoginIdAsInt());
+            System.out.println("Login successfully: " + StpUtil.getLoginIdAsInt());
             return result;
         } catch (Exception e) {
             result.put("status", "error");
@@ -73,7 +73,7 @@ public class UserController {
     @RequestMapping("isLogin")
     public String isLogin() {
         try {
-            return "当前会话登录：" + StpUtil.getLoginIdAsInt();
+            return "Current session login: " + StpUtil.getLoginIdAsInt();
         } catch (Exception e) {
             System.out.println(e.getMessage());
             return e.getMessage();
@@ -83,8 +83,8 @@ public class UserController {
     @GetMapping("/list")
     public List<User> list() {
         List<User> users = userService.list();
-        System.out.println("查询到的用户数量: " + users.size());
-        users.forEach(user -> System.out.println("用户信息: " + user));
+        System.out.println("Number of users found: " + users.size());
+        users.forEach(user -> System.out.println("User information: " + user));
         return users;
     }
 
@@ -131,6 +131,7 @@ public class UserController {
         Integer inquiryId = (Integer) data.get("inquiryId");
         Inquiry inquiry = inquiryService.getById(inquiryId);
         inquiry.setUserId(user.getId());
+        inquiry.setAttorneyApprovedTsInq(System.currentTimeMillis() / 1000);
         inquiryService.updateById(inquiry);
         
         return Map.of(
@@ -158,5 +159,73 @@ public class UserController {
                 .one();
     }
 
-    
+    @PostMapping("/resetPassword")
+    public Map<String, Object> resetPassword(@RequestBody Map<String, String> data) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 获取当前登录用户
+            Integer userId = StpUtil.getLoginIdAsInt();
+            User user = userService.getById(userId);
+
+            String oldPassword = data.get("oldPassword");
+            String newPassword = data.get("newPassword");
+
+            if (!user.getPassword().equals(oldPassword)) {
+                result.put("status", "error");
+                result.put("message", "Old password is incorrect");
+                return result;
+            }
+
+            user.setPassword(newPassword);
+            userService.updateById(user);
+
+            result.put("status", "success");
+            result.put("message", "Password reset successfully");
+            return result;
+        } catch (Exception e) {
+            result.put("status", "error");
+            result.put("message", e.getMessage());
+            return result;
+        }
+    }
+
+    // Create staff user endpoint
+    @PostMapping("/create")
+    public boolean createStaffUser(@RequestBody User staffUser) {
+        try {
+            // Assume userService.save(staffUser) handles password encryption, permission, and validation internally or these are handled elsewhere (e.g., UserService or global exception handler)
+            return userService.save(staffUser);
+        } catch (Exception e) {
+            // Log the error or handle it as needed
+            e.printStackTrace();
+            return false; // Return false on exception
+        }
+    }
+
+    // New endpoint to get all lawyers
+    @GetMapping("/lawyers")
+    public List<User> getAllLawyers() {
+        try {
+            return userService.lambdaQuery()
+                    .eq(User::getUserType, "lawyer")
+                    .list();
+        } catch (Exception e) {
+            System.err.println("Error fetching lawyers: " + e.getMessage());
+            return new java.util.ArrayList<>();
+        }
+    }
+
+    // New endpoint to get all employees
+    @GetMapping("/employees")
+    public List<User> getAllEmployees() {
+        try {
+            return userService.lambdaQuery()
+                    .eq(User::getUserType, "employee")
+                    .list();
+        } catch (Exception e) {
+            System.err.println("Error fetching employees: " + e.getMessage());
+            return new java.util.ArrayList<>();
+        }
+    }
+
 }

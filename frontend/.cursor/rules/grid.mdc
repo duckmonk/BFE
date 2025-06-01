@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+使用这种语法来编写grid ： <Grid size={{ xs: 12, md: 6 }}>

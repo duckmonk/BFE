@@ -43,4 +43,41 @@ public class Inquiry {
     // 社交平台相关
     private String socialPlatform;
     private String socialPlatformOther;
+
+    // 社交媒体相关
+    private String socialHandleInq;
+
+    // NIW评估相关
+    private Integer niwScoreInq;
+    private Long sendOutCalendarDateInq;
+
+    // 价格相关
+    private java.math.BigDecimal totalPriceInq;
+    private java.math.BigDecimal firstPaymentInq;
+    private java.math.BigDecimal secondPaymentInq;
+    private String secondPaymentNoteInq;
+    private java.math.BigDecimal thirdPaymentInq;
+    private String thirdPaymentNoteInq;
+
+    // BFE审批相关
+    private Boolean bfeApprovedButton;
+    private Long bfeApprovedTsInq;
+
+    private Integer bfeSendOutAttorneyInq;
+
+    // 律师审批相关
+    private Boolean attorneyApprovedButton;
+    private Long attorneyApprovedTsInq;
+    private String attorneyFirmInq;
+
+    // 案件管理相关
+    private Integer pocInq;
+    private Integer reviewerInq;
+    private String caseStatusBfeInq;
+
+    // USCIS相关
+    private String caseUscisNumInq;
+    private String caseUscisCenterInq;
+    private String caseUscisReviewerInq;
+    private String caseUscisResultInq;
 } 

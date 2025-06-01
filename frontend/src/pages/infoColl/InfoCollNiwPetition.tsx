@@ -1,5 +1,5 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { Box, Typography, TextField, MenuItem, Snackbar, Alert, Accordion, AccordionSummary, AccordionDetails, IconButton, Button, Divider } from '@mui/material';
+import { Box, Typography, TextField, MenuItem, Snackbar, Alert, Accordion, AccordionSummary, AccordionDetails, IconButton, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -113,11 +113,17 @@ interface IndustryContribution {
   supplementalEvidences?: IndustrySupplementalEvidence[];
 }
 
+interface ValidationErrors {
+  [key: string]: boolean;
+}
+
 const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number }, ref) => {
   const [formData, setFormData] = useState<{ [key: string]: any }>({});
   const [contributions, setContributions] = useState<AcademicContribution[]>([]);
   const [industryContributions, setIndustryContributions] = useState<IndustryContribution[]>([]);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [validationDialog, setValidationDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   useEffect(() => {
     if (clientCaseId) {
@@ -152,6 +158,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
       // 如果切换到 Hybrid，不清空任何数据
     }
     setFormData(prev => ({ ...prev, [name]: e.target.value }));
+    // 清除该字段的错误状态
+    setErrors(prev => ({ ...prev, [name]: false }));
   };
 
   // 添加新的贡献
@@ -176,6 +184,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
     setContributions(prev => prev.map((item, i) => 
       i === index ? { ...item, [field]: value } : item
     ));
+    // 清除该字段的错误状态
+    setErrors(prev => ({ ...prev, [`contribution_${index}_${field}`]: false }));
   };
 
   // 添加新的 funding
@@ -226,6 +236,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
       }
       return contribution;
     }));
+    // 清除该字段的错误状态
+    setErrors(prev => ({ ...prev, [`contribution_${contributionIndex}_funding_${fundingIndex}_${field}`]: false }));
   };
 
   // 添加新的 policy impact
@@ -276,6 +288,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
       }
       return contribution;
     }));
+    // 清除该字段的错误状态
+    setErrors(prev => ({ ...prev, [`contribution_${contributionIndex}_policyImpact_${impactIndex}_${field}`]: false }));
   };
 
   // 添加新的 industry adoption
@@ -621,10 +635,228 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
+  // 验证表单
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+    let isValid = true;
+
+    // 验证 User Path Selection
+    if (!formData.userPath) {
+      newErrors.userPath = true;
+      isValid = false;
+    }
+
+    // 验证 Academic Core Contribution
+    if (showAcademicSection) {
+      contributions.forEach((contribution, index) => {
+        // 验证 Contribution Title
+        if (!contribution.contributionTitle) {
+          newErrors[`contribution_${index}_title`] = true;
+          isValid = false;
+        }
+
+        // 验证 Funding
+        if (!contribution.fundingReceived) {
+          newErrors[`contribution_${index}_fundingReceived`] = true;
+          isValid = false;
+        }
+
+        // 如果选择了 Yes，验证 Funding Details
+        if (contribution.fundingReceived === 'Yes' && contribution.fundings) {
+          contribution.fundings.forEach((funding, fundingIndex) => {
+            if (!funding.fundingCategory) {
+              newErrors[`contribution_${index}_funding_${fundingIndex}_category`] = true;
+              isValid = false;
+            }
+            if (!funding.fundingLinks && !funding.fundingAttachments) {
+              newErrors[`contribution_${index}_funding_${fundingIndex}_links`] = true;
+              newErrors[`contribution_${index}_funding_${fundingIndex}_attachments`] = true;
+              isValid = false;
+            }
+            if (!funding.fundingRemarks) {
+              newErrors[`contribution_${index}_funding_${fundingIndex}_remarks`] = true;
+              isValid = false;
+            }
+          });
+        }
+
+        // 验证 Policy Impact
+        if (!contribution.impact) {
+          newErrors[`contribution_${index}_impact`] = true;
+          isValid = false;
+        }
+
+        // 如果选择了 Yes，验证 Policy Impact Details
+        if (contribution.impact === 'Yes' && contribution.policyImpacts) {
+          contribution.policyImpacts.forEach((impact, impactIndex) => {
+            if (!impact.impactField) {
+              newErrors[`contribution_${index}_policyImpact_${impactIndex}_field`] = true;
+              isValid = false;
+            }
+            if (!impact.impactBeneficiary) {
+              newErrors[`contribution_${index}_policyImpact_${impactIndex}_beneficiary`] = true;
+              isValid = false;
+            }
+            if (!impact.impactLinks && !impact.impactAttachments) {
+              newErrors[`contribution_${index}_policyImpact_${impactIndex}_links`] = true;
+              newErrors[`contribution_${index}_policyImpact_${impactIndex}_attachments`] = true;
+              isValid = false;
+            }
+            if (!impact.impactRemarks) {
+              newErrors[`contribution_${index}_policyImpact_${impactIndex}_remarks`] = true;
+              isValid = false;
+            }
+          });
+        }
+
+        // 验证 Industry Adoption
+        if (!contribution.industryAdoption) {
+          newErrors[`contribution_${index}_industryAdoption`] = true;
+          isValid = false;
+        }
+
+        // 如果选择了 Yes，验证 Industry Adoption Details
+        if (contribution.industryAdoption === 'Yes' && contribution.industryAdoptions) {
+          contribution.industryAdoptions.forEach((adoption, adoptionIndex) => {
+            if (!adoption.industryDocs) {
+              newErrors[`contribution_${index}_industryAdoption_${adoptionIndex}_docs`] = true;
+              isValid = false;
+            }
+            if (!adoption.industryLinks && !adoption.industryAttachments) {
+              newErrors[`contribution_${index}_industryAdoption_${adoptionIndex}_links`] = true;
+              newErrors[`contribution_${index}_industryAdoption_${adoptionIndex}_attachments`] = true;
+              isValid = false;
+            }
+            if (!adoption.industryRemarks) {
+              newErrors[`contribution_${index}_industryAdoption_${adoptionIndex}_remarks`] = true;
+              isValid = false;
+            }
+          });
+        }
+
+        // 验证 Academic Publications
+        if (!contribution.publication) {
+          newErrors[`contribution_${index}_publication`] = true;
+          isValid = false;
+        }
+
+        // 如果选择了 Yes，验证 Publication Details
+        if (contribution.publication === 'Yes' && contribution.publications) {
+          contribution.publications.forEach((pub, pubIndex) => {
+            if (!pub.pubInstitution) {
+              newErrors[`contribution_${index}_publication_${pubIndex}_institution`] = true;
+              isValid = false;
+            }
+            if (!pub.pubTitle) {
+              newErrors[`contribution_${index}_publication_${pubIndex}_title`] = true;
+              isValid = false;
+            }
+            if (!pub.pubCitations) {
+              newErrors[`contribution_${index}_publication_${pubIndex}_citations`] = true;
+              isValid = false;
+            }
+            if (!pub.pubPracticalUses) {
+              newErrors[`contribution_${index}_publication_${pubIndex}_practicalUses`] = true;
+              isValid = false;
+            }
+            if (!pub.pubTier) {
+              newErrors[`contribution_${index}_publication_${pubIndex}_tier`] = true;
+              isValid = false;
+            }
+            if (!pub.pubRemarks) {
+              newErrors[`contribution_${index}_publication_${pubIndex}_remarks`] = true;
+              isValid = false;
+            }
+          });
+        }
+      });
+    }
+
+    // 验证 Industry Core Contribution
+    if (showIndustrySection) {
+      industryContributions.forEach((contribution, index) => {
+        // 验证基本字段
+        if (!contribution.projectTitle) {
+          newErrors[`industry_contribution_${index}_title`] = true;
+          isValid = false;
+        }
+        if (!contribution.projectBackground) {
+          newErrors[`industry_contribution_${index}_background`] = true;
+          isValid = false;
+        }
+        if (!contribution.yourContribution) {
+          newErrors[`industry_contribution_${index}_contribution`] = true;
+          isValid = false;
+        }
+        if (!contribution.projectOutcomes) {
+          newErrors[`industry_contribution_${index}_outcomes`] = true;
+          isValid = false;
+        }
+
+        // 验证 Project-Level Evidence
+        if (contribution.projectEvidences) {
+          contribution.projectEvidences.forEach((evidence, evidenceIndex) => {
+            if (!evidence.evidenceType) {
+              newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_type`] = true;
+              isValid = false;
+            }
+            if (!evidence.evidenceLinks && !evidence.evidenceAttachments) {
+              newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_links`] = true;
+              newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_attachments`] = true;
+              isValid = false;
+            }
+            if (!evidence.evidenceRemarks) {
+              newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_remarks`] = true;
+              isValid = false;
+            }
+            if (!evidence.evidenceHasApplicantProof) {
+              newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_hasApplicantProof`] = true;
+              isValid = false;
+            }
+
+            // 如果选择了 Yes，验证 Applicant-Specific Evidence
+            if (evidence.evidenceHasApplicantProof === 'Yes' && evidence.applicantProofs) {
+              evidence.applicantProofs.forEach((proof, proofIndex) => {
+                if (!proof.proofType) {
+                  newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_type`] = true;
+                  isValid = false;
+                }
+                if (!proof.proofLinks && !proof.proofFiles) {
+                  newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_links`] = true;
+                  newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_files`] = true;
+                  isValid = false;
+                }
+                if (!proof.proofExplanation) {
+                  newErrors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_explanation`] = true;
+                  isValid = false;
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    setErrors(newErrors);
+
+    if (!isValid) {
+      setValidationDialog({
+        open: true,
+        message: 'Please fill in all required fields and upload required documents.'
+      });
+    }
+
+    return isValid;
+  };
+
   // 暴露方法给父组件
   useImperativeHandle(ref, () => ({
     getFormData: () => ({ ...formData, contributions, industryContributions }),
     submit: async (clientCase: any) => {
+      if (!validateForm()) {
+        return false;
+      }
+
       try {
         // 处理每个 contribution
         const processedContributions = contributions.map(contribution => ({
@@ -657,9 +889,17 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
           }
         }
 
-        setSnackbar({ open: true, message: '保存成功', severity: 'success' });
+        setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
+        
+        // 触发父组件的状态更新
+        if (clientCase.onStatusChange) {
+          clientCase.onStatusChange('niwPetition', true);
+        }
+        
+        return true;
       } catch (e: any) {
-        setSnackbar({ open: true, message: e?.message || '保存失败', severity: 'error' });
+        setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });
+        return false;
       }
     }
   }));
@@ -669,6 +909,9 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
 
   return (
     <Box component="form" noValidate autoComplete="off">
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        Reminder: If you do not click Save, your changes will be lost.
+      </Alert>
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>NIW Petition</Typography>
       
       {/* User Path Selection */}
@@ -682,6 +925,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
         value={formData.userPath || ''}
         onChange={handleSelectChange('userPath')}
         required
+        error={errors.userPath}
+        helperText={errors.userPath ? 'Please select a user path' : ''}
       >
         {userPathOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
       </TextField>
@@ -740,6 +985,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                     value={contribution.contributionTitle}
                     onChange={(e) => handleContributionChange(index, 'contributionTitle', e.target.value)}
                     required
+                    error={errors[`contribution_${index}_title`]}
+                    helperText={errors[`contribution_${index}_title`] ? 'Contribution Title is required' : ''}
                   />
 
 
@@ -758,6 +1005,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                         value={contribution.fundingReceived}
                         onChange={(e) => handleContributionChange(index, 'fundingReceived', e.target.value)}
                         required
+                        error={errors[`contribution_${index}_fundingReceived`]}
+                        helperText={errors[`contribution_${index}_fundingReceived`] ? 'Funding Received is required' : ''}
                       >
                         {yesNoOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
                       </TextField>
@@ -814,6 +1063,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={funding.fundingCategory}
                                   onChange={(e) => handleFundingChange(index, fundingIndex, 'fundingCategory', e.target.value)}
                                   required
+                                  error={errors[`contribution_${index}_funding_${fundingIndex}_category`]}
+                                  helperText={errors[`contribution_${index}_funding_${fundingIndex}_category`] ? 'Project Category is required' : ''}
                                 >
                                   {fundingCategoryOptions.map(opt => (
                                     <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -828,6 +1079,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={funding.fundingLinks}
                                   onChange={(e) => handleFundingChange(index, fundingIndex, 'fundingLinks', e.target.value)}
                                   required={!funding.fundingAttachments}
+                                  error={errors[`contribution_${index}_funding_${fundingIndex}_links`]}
+                                  helperText={errors[`contribution_${index}_funding_${fundingIndex}_links`] ? 'Supporting Links are required' : ''}
                                 />
 
                                 <FileUploadButton
@@ -835,6 +1088,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   fileType="fundingAttachment"
                                   onFileUrlChange={(url: string | null) => handleFundingChange(index, fundingIndex, 'fundingAttachments', url || '')}
                                   required={!funding.fundingLinks}
+                                  error={errors[`contribution_${index}_funding_${fundingIndex}_attachments`]}
                                 />
 
                                 <TextField
@@ -847,6 +1101,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   required
                                   multiline
                                   rows={2}
+                                  error={errors[`contribution_${index}_funding_${fundingIndex}_remarks`]}
+                                  helperText={errors[`contribution_${index}_funding_${fundingIndex}_remarks`] ? 'Remarks are required' : ''}
                                 />
                               </AccordionDetails>
                             </Accordion>
@@ -871,6 +1127,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                         value={contribution.impact}
                         onChange={(e) => handleContributionChange(index, 'impact', e.target.value)}
                         required
+                        error={errors[`contribution_${index}_impact`]}
+                        helperText={errors[`contribution_${index}_impact`] ? 'Impact is required' : ''}
                       >
                         {yesNoOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
                       </TextField>
@@ -927,6 +1185,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={impact.impactField}
                                   onChange={(e) => handlePolicyImpactChange(index, impactIndex, 'impactField', e.target.value)}
                                   required
+                                  error={errors[`contribution_${index}_policyImpact_${impactIndex}_field`]}
+                                  helperText={errors[`contribution_${index}_policyImpact_${impactIndex}_field`] ? 'Application Field is required' : ''}
                                 >
                                   {impactFieldOptions.map(opt => (
                                     <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -941,6 +1201,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={impact.impactBeneficiary}
                                   onChange={(e) => handlePolicyImpactChange(index, impactIndex, 'impactBeneficiary', e.target.value)}
                                   required
+                                  error={errors[`contribution_${index}_policyImpact_${impactIndex}_beneficiary`]}
+                                  helperText={errors[`contribution_${index}_policyImpact_${impactIndex}_beneficiary`] ? 'Beneficiary Group is required' : ''}
                                 />
 
                                 <TextField
@@ -951,6 +1213,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={impact.impactLinks}
                                   onChange={(e) => handlePolicyImpactChange(index, impactIndex, 'impactLinks', e.target.value)}
                                   required={!impact.impactAttachments}
+                                  error={errors[`contribution_${index}_policyImpact_${impactIndex}_links`]}
+                                  helperText={errors[`contribution_${index}_policyImpact_${impactIndex}_links`] ? 'Supporting Links are required' : ''}
                                 />
 
                                 <FileUploadButton
@@ -958,6 +1222,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   fileType="policyImpactAttachment"
                                   onFileUrlChange={(url: string | null) => handlePolicyImpactChange(index, impactIndex, 'impactAttachments', url || '')}
                                   required={!impact.impactLinks}
+                                  error={errors[`contribution_${index}_policyImpact_${impactIndex}_attachments`]}
                                 />
 
                                 <TextField
@@ -970,6 +1235,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   required
                                   multiline
                                   rows={2}
+                                  error={errors[`contribution_${index}_policyImpact_${impactIndex}_remarks`]}
+                                  helperText={errors[`contribution_${index}_policyImpact_${impactIndex}_remarks`] ? 'Remarks are required' : ''}
                                 />
                               </AccordionDetails>
                             </Accordion>
@@ -995,6 +1262,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                         value={contribution.industryAdoption}
                         onChange={(e) => handleContributionChange(index, 'industryAdoption', e.target.value)}
                         required
+                        error={errors[`contribution_${index}_industryAdoption`]}
+                        helperText={errors[`contribution_${index}_industryAdoption`] ? 'Industry Adoption is required' : ''}
                       >
                         {yesNoOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
                       </TextField>
@@ -1051,6 +1320,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={adoption.industryDocs}
                                   onChange={(e) => handleIndustryAdoptionChange(index, adoptionIndex, 'industryDocs', e.target.value)}
                                   required
+                                  error={errors[`contribution_${index}_industryAdoption_${adoptionIndex}_docs`]}
+                                  helperText={errors[`contribution_${index}_industryAdoption_${adoptionIndex}_docs`] ? 'Supporting Documents are required' : ''}
                                 >
                                   {industryDocsOptions.map(opt => (
                                     <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -1065,6 +1336,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={adoption.industryLinks}
                                   onChange={(e) => handleIndustryAdoptionChange(index, adoptionIndex, 'industryLinks', e.target.value)}
                                   required={!adoption.industryAttachments}
+                                  error={errors[`contribution_${index}_industryAdoption_${adoptionIndex}_links`]}
+                                  helperText={errors[`contribution_${index}_industryAdoption_${adoptionIndex}_links`] ? 'Supporting Links are required' : ''}
                                 />
 
                                 <FileUploadButton
@@ -1072,6 +1345,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   fileType="industryAdoptionAttachment"
                                   onFileUrlChange={(url: string | null) => handleIndustryAdoptionChange(index, adoptionIndex, 'industryAttachments', url || '')}
                                   required={!adoption.industryLinks}
+                                  error={errors[`contribution_${index}_industryAdoption_${adoptionIndex}_attachments`]}
                                 />
 
                                 <TextField
@@ -1084,6 +1358,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   required
                                   multiline
                                   rows={2}
+                                  error={errors[`contribution_${index}_industryAdoption_${adoptionIndex}_remarks`]}
+                                  helperText={errors[`contribution_${index}_industryAdoption_${adoptionIndex}_remarks`] ? 'Remarks are required' : ''}
                                 />
                               </AccordionDetails>
                             </Accordion>
@@ -1108,6 +1384,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                         value={contribution.publication}
                         onChange={(e) => handleContributionChange(index, 'publication', e.target.value)}
                         required
+                        error={errors[`contribution_${index}_publication`]}
+                        helperText={errors[`contribution_${index}_publication`] ? 'Publication is required' : ''}
                       >
                         {yesNoOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
                       </TextField>
@@ -1163,6 +1441,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={publication.pubInstitution}
                                   onChange={(e) => handlePublicationChange(index, publicationIndex, 'pubInstitution', e.target.value)}
                                   required
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_institution`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_institution`] ? 'Institution is required' : ''}
                                 />
 
                                 <TextField
@@ -1172,6 +1452,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   sx={{ mb: 2 }}
                                   value={publication.pubIssn}
                                   onChange={(e) => handlePublicationChange(index, publicationIndex, 'pubIssn', e.target.value)}
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_citations`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_citations`] ? 'ISSN is required' : ''}
                                 />
 
                                 <TextField
@@ -1181,6 +1463,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   sx={{ mb: 2 }}
                                   value={publication.pubRanking}
                                   onChange={(e) => handlePublicationChange(index, publicationIndex, 'pubRanking', e.target.value)}
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_tier`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_tier`] ? 'Journal Ranking is required' : ''}
                                 />
 
                                 <TextField
@@ -1191,6 +1475,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={publication.pubTitle}
                                   onChange={(e) => handlePublicationChange(index, publicationIndex, 'pubTitle', e.target.value)}
                                   required
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_title`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_title`] ? 'Paper Title is required' : ''}
                                 />
 
                                 <TextField
@@ -1202,6 +1488,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={publication.pubCitations}
                                   onChange={(e) => handlePublicationChange(index, publicationIndex, 'pubCitations', parseInt(e.target.value) || 0)}
                                   required
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_citations`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_citations`] ? 'Citation Count is required' : ''}
                                 />
 
                                 <TextField
@@ -1212,6 +1500,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={publication.pubPracticalUses}
                                   onChange={(e) => handlePublicationChange(index, publicationIndex, 'pubPracticalUses', e.target.value)}
                                   required
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_practicalUses`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_practicalUses`] ? 'Practical Applications are required' : ''}
                                 />
 
                                 <TextField
@@ -1223,6 +1513,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={publication.pubTier}
                                   onChange={(e) => handlePublicationChange(index, publicationIndex, 'pubTier', e.target.value)}
                                   required
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_tier`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_tier`] ? 'Journal Tier is required' : ''}
                                 >
                                   {journalTierOptions.map(opt => (
                                     <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -1237,6 +1529,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   value={publication.pubLinks}
                                   onChange={(e) => handlePublicationChange(index, publicationIndex, 'pubLinks', e.target.value)}
                                   required={!publication.pubAttachments}
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_links`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_links`] ? 'Supporting Links are required' : ''}
                                 />
 
                                 <FileUploadButton
@@ -1244,6 +1538,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   fileType="publicationAttachment"
                                   onFileUrlChange={(url: string | null) => handlePublicationChange(index, publicationIndex, 'pubAttachments', url || '')}
                                   required={!publication.pubLinks}
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_attachments`]}
                                 />
 
                                 <TextField
@@ -1256,6 +1551,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   required
                                   multiline
                                   rows={2}
+                                  error={errors[`contribution_${index}_publication_${publicationIndex}_remarks`]}
+                                  helperText={errors[`contribution_${index}_publication_${publicationIndex}_remarks`] ? 'Remarks are required' : ''}
                                 />
                               </AccordionDetails>
                             </Accordion>
@@ -1322,6 +1619,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 value={evidence.evidenceType}
                                 onChange={(e) => handleSupplementalEvidenceChange(index, evidenceIndex, 'evidenceType', e.target.value)}
                                 required
+                                error={errors[`contribution_${index}_supplementalEvidence_${evidenceIndex}_type`]}
+                                helperText={errors[`contribution_${index}_supplementalEvidence_${evidenceIndex}_type`] ? 'Evidence Type is required' : ''}
                               >
                                 {evidenceTypeOptions.map(opt => (
                                   <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -1336,6 +1635,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 value={evidence.evidenceLink}
                                 onChange={(e) => handleSupplementalEvidenceChange(index, evidenceIndex, 'evidenceLink', e.target.value)}
                                 required={!evidence.evidenceAttachment}
+                                error={errors[`contribution_${index}_supplementalEvidence_${evidenceIndex}_links`]}
+                                helperText={errors[`contribution_${index}_supplementalEvidence_${evidenceIndex}_links`] ? 'Supporting Links are required' : ''}
                               />
 
                               <FileUploadButton
@@ -1343,6 +1644,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 fileType="supplementalEvidenceAttachment"
                                 onFileUrlChange={(url: string | null) => handleSupplementalEvidenceChange(index, evidenceIndex, 'evidenceAttachment', url || '')}
                                 required={!evidence.evidenceLink}
+                                error={errors[`contribution_${index}_supplementalEvidence_${evidenceIndex}_attachments`]}
                               />
 
                               <TextField
@@ -1355,6 +1657,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 required
                                 multiline
                                 rows={2}
+                                error={errors[`contribution_${index}_supplementalEvidence_${evidenceIndex}_remarks`]}
+                                helperText={errors[`contribution_${index}_supplementalEvidence_${evidenceIndex}_remarks`] ? 'Remarks are required' : ''}
                               />
                             </AccordionDetails>
                           </Accordion>
@@ -1423,6 +1727,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                     value={contribution.projectTitle}
                     onChange={(e) => handleIndustryContributionChange(index, 'projectTitle', e.target.value)}
                     required
+                    error={errors[`industry_contribution_${index}_title`]}
+                    helperText={errors[`industry_contribution_${index}_title`] ? 'Project Title is required' : ''}
                   />
 
                   <TextField
@@ -1435,6 +1741,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                     required
                     multiline
                     rows={3}
+                    error={errors[`industry_contribution_${index}_background`]}
+                    helperText={errors[`industry_contribution_${index}_background`] ? 'Project Background is required' : ''}
                   />
 
                   <TextField
@@ -1447,6 +1755,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                     required
                     multiline
                     rows={3}
+                    error={errors[`industry_contribution_${index}_contribution`]}
+                    helperText={errors[`industry_contribution_${index}_contribution`] ? 'Your Specific Contribution is required' : ''}
                   />
 
                   <TextField
@@ -1459,6 +1769,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                     required
                     multiline
                     rows={3}
+                    error={errors[`industry_contribution_${index}_outcomes`]}
+                    helperText={errors[`industry_contribution_${index}_outcomes`] ? 'Project Outcomes are required' : ''}
                   />
 
                   {/* Project-Level Evidence Section */}
@@ -1518,6 +1830,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 value={evidence.evidenceType}
                                 onChange={(e) => handleProjectEvidenceChange(index, evidenceIndex, 'evidenceType', e.target.value)}
                                 required
+                                error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_type`]}
+                                helperText={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_type`] ? 'Evidence Type is required' : ''}
                               >
                                 {evidenceTypeOptions.map(opt => (
                                   <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -1532,6 +1846,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 value={evidence.evidenceLinks}
                                 onChange={(e) => handleProjectEvidenceChange(index, evidenceIndex, 'evidenceLinks', e.target.value)}
                                 required={!evidence.evidenceAttachments}
+                                error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_links`]}
+                                helperText={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_links`] ? 'Supporting Links are required' : ''}
                               />
 
                               <FileUploadButton
@@ -1539,6 +1855,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 fileType="projectEvidenceAttachment"
                                 onFileUrlChange={(url: string | null) => handleProjectEvidenceChange(index, evidenceIndex, 'evidenceAttachments', url || '')}
                                 required={!evidence.evidenceLinks}
+                                error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_attachments`]}
                               />
 
                               <TextField
@@ -1551,6 +1868,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 required
                                 multiline
                                 rows={2}
+                                error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_remarks`]}
+                                helperText={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_remarks`] ? 'Remarks are required' : ''}
                               />
 
                               <TextField
@@ -1562,6 +1881,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 value={evidence.evidenceHasApplicantProof}
                                 onChange={(e) => handleProjectEvidenceChange(index, evidenceIndex, 'evidenceHasApplicantProof', e.target.value)}
                                 required
+                                error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_hasApplicantProof`]}
+                                helperText={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_hasApplicantProof`] ? 'Applicant Proof is required' : ''}
                               >
                                 {yesNoOptions.map(opt => (
                                   <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -1620,6 +1941,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                           value={proof.proofType}
                                           onChange={(e) => handleApplicantProofChange(index, evidenceIndex, proofIndex, 'proofType', e.target.value)}
                                           required
+                                          error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_type`]}
+                                          helperText={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_type`] ? 'Proof Type is required' : ''}
                                         >
                                           {applicantProofTypeOptions.map(opt => (
                                             <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -1634,6 +1957,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                           value={proof.proofLinks}
                                           onChange={(e) => handleApplicantProofChange(index, evidenceIndex, proofIndex, 'proofLinks', e.target.value)}
                                           required={!proof.proofFiles}
+                                          error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_links`]}
+                                          helperText={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_links`] ? 'Proof Links are required' : ''}
                                         />
 
                                         <FileUploadButton
@@ -1641,6 +1966,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                           fileType="applicantProofFile"
                                           onFileUrlChange={(url: string | null) => handleApplicantProofChange(index, evidenceIndex, proofIndex, 'proofFiles', url || '')}
                                           required={!proof.proofLinks}
+                                          error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_files`]}
                                         />
 
                                         <TextField
@@ -1653,6 +1979,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                           required
                                           multiline
                                           rows={2}
+                                          error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_explanation`]}
+                                          helperText={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_explanation`] ? 'Proof Explanation is required' : ''}
                                         />
                                       </AccordionDetails>
                                     </Accordion>
@@ -1723,6 +2051,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 value={evidence.evidenceType}
                                 onChange={(e) => handleIndustrySupplementalEvidenceChange(index, evidenceIndex, 'evidenceType', e.target.value)}
                                 required
+                                error={errors[`industry_contribution_${index}_supplementalEvidence_${evidenceIndex}_type`]}
+                                helperText={errors[`industry_contribution_${index}_supplementalEvidence_${evidenceIndex}_type`] ? 'Evidence Type is required' : ''}
                               >
                                 {evidenceTypeOptions.map(opt => (
                                   <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -1737,6 +2067,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 value={evidence.evidenceLink}
                                 onChange={(e) => handleIndustrySupplementalEvidenceChange(index, evidenceIndex, 'evidenceLink', e.target.value)}
                                 required={!evidence.evidenceAttachment}
+                                error={errors[`industry_contribution_${index}_supplementalEvidence_${evidenceIndex}_links`]}
+                                helperText={errors[`industry_contribution_${index}_supplementalEvidence_${evidenceIndex}_links`] ? 'Supporting Links are required' : ''}
                               />
 
                               <FileUploadButton
@@ -1744,6 +2076,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 fileType="industrySupplementalEvidenceAttachment"
                                 onFileUrlChange={(url: string | null) => handleIndustrySupplementalEvidenceChange(index, evidenceIndex, 'evidenceAttachment', url || '')}
                                 required={!evidence.evidenceLink}
+                                error={errors[`industry_contribution_${index}_supplementalEvidence_${evidenceIndex}_attachments`]}
                               />
 
                               <TextField
@@ -1756,6 +2089,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 required
                                 multiline
                                 rows={2}
+                                error={errors[`industry_contribution_${index}_supplementalEvidence_${evidenceIndex}_remarks`]}
+                                helperText={errors[`industry_contribution_${index}_supplementalEvidence_${evidenceIndex}_remarks`] ? 'Remarks are required' : ''}
                               />
                             </AccordionDetails>
                           </Accordion>
@@ -1780,6 +2115,21 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog
+        open={validationDialog.open}
+        onClose={() => setValidationDialog({ open: false, message: '' })}
+      >
+        <DialogTitle>Validation Error</DialogTitle>
+        <DialogContent>
+          <Typography>{validationDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidationDialog({ open: false, message: '' })}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 });

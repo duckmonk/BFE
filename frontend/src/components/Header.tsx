@@ -33,7 +33,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <AppBar position="static" color="default" elevation={0}>
+    <AppBar position="static" elevation={0} sx={{ bgcolor: '#f3f2ee' }}>
       <Toolbar>
         <Typography
           variant="h6"
@@ -42,7 +42,7 @@ const Header: React.FC = () => {
           sx={{
             flexGrow: 1,
             textDecoration: 'none',
-            color: 'inherit',
+            color: '#000',
             fontWeight: 600
           }}
         >
@@ -58,6 +58,7 @@ const Header: React.FC = () => {
                   to="/landing"
                   color="inherit"
                   sx={{
+                    color: '#000',
                     fontWeight: isActive('/landing') ? 600 : 400,
                     '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
                   }}
@@ -71,24 +72,42 @@ const Header: React.FC = () => {
                     to="/inquiry-dashboard"
                     color="inherit"
                     sx={{
+                      color: '#000',
                       fontWeight: isActive('/inquiry-dashboard') ? 600 : 400,
                       '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
                     }}
                   >
                     Inquiry Dashboard
                   </Button>
-                  <Button
-                    component={RouterLink}
-                    to="/case-detail-dashboard"
-                    color="inherit"
-                    sx={{
-                      fontWeight: isActive('/case-detail-dashboard') ? 600 : 400,
-                      '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
-                    }}
-                  >
-                    Case Dashboard
-                  </Button>
+                  {user.userType === 'marketing_manager' || user.userType === 'admin' ? (
+                    <Button
+                      component={RouterLink}
+                      to="/case-detail-dashboard"
+                      color="inherit"
+                      sx={{
+                        color: '#000',
+                        fontWeight: isActive('/case-detail-dashboard') ? 600 : 400,
+                        '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+                      }}
+                    >
+                      Case Dashboard
+                    </Button>
+                  ) : null}
                 </>
+              )}
+              {user.userType === 'admin' && (
+                <Button
+                  component={RouterLink}
+                  to="/staff-management"
+                  color="inherit"
+                  sx={{
+                    color: '#000',
+                    fontWeight: isActive('/staff-management') ? 600 : 400,
+                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+                  }}
+                >
+                  Staff Management
+                </Button>
               )}
               <IconButton
                 onClick={handleMenu}
@@ -128,7 +147,9 @@ const Header: React.FC = () => {
               to="/service"
               color="inherit"
               sx={{
-                fontWeight: isActive('/service') ? 600 : 400,
+                color: '#000',
+                fontWeight: 600,
+                fontSize: '1rem',
                 '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
               }}
             >
@@ -139,11 +160,13 @@ const Header: React.FC = () => {
               to="/about"
               color="inherit"
               sx={{
-                fontWeight: isActive('/about') ? 600 : 400,
+                color: '#000',
+                fontWeight: 600,
+                fontSize: '1rem',
                 '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
               }}
             >
-              About Me
+              About US
             </Button>
             <Button
               variant="contained"
@@ -151,6 +174,8 @@ const Header: React.FC = () => {
               sx={{
                 bgcolor: '#000',
                 color: '#fff',
+                fontWeight: 600,
+                fontSize: '1rem',
                 '&:hover': {
                   bgcolor: '#333'
                 }

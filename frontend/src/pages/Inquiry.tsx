@@ -108,9 +108,29 @@ const Inquiry: React.FC = () => {
   // 处理表单变化
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
+    let newValue: any = value;
+    // 针对 select 的 YES/NO 处理
+    if (
+      [
+        'impactBenefits',
+        'impactUsGov',
+        'impactRecognition',
+        'roleVerified',
+        'impactApplied',
+        'achievementsSpeaking',
+        'achievementsFunding',
+        'achievementsGov',
+        'achievementsOffers',
+        'achievementsMedia'
+      ].includes(name)
+    ) {
+      newValue = value === 'true';
+    } else if (type === 'checkbox') {
+      newValue = e.target.checked;
+    }
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? e.target.checked : value
+      [name]: newValue
     }));
   };
 
@@ -121,14 +141,14 @@ const Inquiry: React.FC = () => {
       await inquiryApi.submit(formData);
       setSnackbar({
         open: true,
-        message: '提交成功！',
+        message: 'Submit successfully!',
         severity: 'success'
       });
       setIsSubmitted(true);
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error instanceof Error ? error.message : '提交失败，请稍后重试',
+        message: error instanceof Error ? error.message : 'Submit failed, please try again later',
         severity: 'error'
       });
     }
@@ -150,9 +170,6 @@ const Inquiry: React.FC = () => {
               <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
                 We will get back to you in 3 days! Via the email you provided.
               </Typography>
-              {/* <Typography variant="body1" color="text.secondary">
-                Upload Attachment(不需要特别updated)
-              </Typography> */}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{ maxWidth: '100%', height: 'auto' }}>
@@ -190,7 +207,7 @@ const Inquiry: React.FC = () => {
               Submit Your Inquires
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-              请提供下面的信息，这样我们可以更好的评估能不能接
+              Please provide the following information so we can better evaluate whether we can take your case.
             </Typography>
 
             <Box component="form" onSubmit={handleSubmit} sx={{ mt: 4 }}>

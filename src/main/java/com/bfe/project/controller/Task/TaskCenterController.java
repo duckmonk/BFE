@@ -32,6 +32,9 @@ public class TaskCenterController {
     @Autowired
     private TaskEndeavorSubmissionService endeavorSubmissionService;
 
+    @Autowired
+    private TaskFinalQuestionnaireService taskFinalQuestionnaireService;
+
     private Map<String, Boolean> getTasksStatusMap(Integer caseId) {
         Map<String, Boolean> result = new HashMap<>();
 
@@ -71,6 +74,11 @@ public class TaskCenterController {
                 .eq(TaskBalancingFactors::getClientCaseId, caseId)
                 .one();
         result.put("balancing_factors", balancingFactors != null && "YES".equals(balancingFactors.getProng3BfConfirm()));
+
+        TaskFinalQuestionnaire finalQuestionnaire = taskFinalQuestionnaireService.lambdaQuery()
+                .eq(TaskFinalQuestionnaire::getClientCaseId, caseId)
+                .one();
+        result.put("final_questionnaire", finalQuestionnaire != null && "YES".equals(finalQuestionnaire.getFinalQuestionnaireConfirm()));
         
         return result;
     }
@@ -78,32 +86,5 @@ public class TaskCenterController {
     @GetMapping("/tasks-status/{caseId}")
     public Map<String, Boolean> getTasksStatus(@PathVariable("caseId") Integer caseId) {
         return getTasksStatusMap(caseId);
-    }
-
-    @GetMapping("/tasks-enabled/{caseId}")
-    @Transactional(rollbackFor = Exception.class)
-    public Set<String> getEnabledTasks(@PathVariable("caseId") Integer caseId) {
-        Map<String, Boolean> result = getTasksStatusMap(caseId);
-        
-        Set<String> enabled = new HashSet<>();
-        enabled.add("endeavor_submission");
-        if (result.get("endeavor_submission")) {
-            enabled.add("national_importance");
-            enabled.add("future_plan");
-        }
-        if (result.get("national_importance")) {
-            enabled.add("substantial_merits");
-        }
-        if (result.get("future_plan")) {
-            enabled.add("recommendation_letters");
-        }
-        if (result.get("future_plan") && result.get("substantial_merits") && result.get("recommendation_letters")) {
-            enabled.add("well_positioned");
-        }
-        if (result.get("well_positioned")) {
-            enabled.add("balancing_factors");
-        }
-
-        return enabled;
     }
 } 

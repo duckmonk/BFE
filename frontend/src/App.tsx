@@ -16,6 +16,8 @@ import LandingPage from './pages/LandingPage';
 import CaseDetailDashboard from './pages/CaseDetailDashboard';
 import Profile from './pages/Profile';
 import Service from './pages/Service';
+import SchedulePage from './pages/SchedulePage';
+import StaffManagementPage from './pages/StaffManagementPage';
 
 const theme = createTheme({
   palette: {
@@ -60,10 +62,11 @@ const App: React.FC = () => {
             <Route path="/guidelines" element={<Guidelines />} />
             <Route path="/inquiry-dashboard" element={<InquiryDashboard />} />
           <Route path="/case-details" element={<CaseDetails />} />
-            <Route path="/case-details/:userId" element={<CaseDetails />} />
-            <Route path="/case-details/id/:clientCaseId" element={<CaseDetails />} />
+            <Route path="/case-details/:clientCaseId" element={<CaseDetails />} />
             <Route path="/case-detail-dashboard" element={<CaseDetailDashboard />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/schedule" element={<SchedulePage />} />
+            <Route path="/staff-management" element={<StaffManagementPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Footer />

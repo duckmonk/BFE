@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Snackbar, Alert, TextField } from '@mui/material';
+import { Box, Typography, Button, Snackbar, Alert, TextField, Paper } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { getUserType } from '../utils/user';
-import ColorfulTextArea from './ColorfulTextArea';
 import FileUploadButton from './FileUploadButton';
 import { AxiosResponse } from 'axios';
 
@@ -11,6 +10,7 @@ interface TaskFormProps {
   clientCaseId: number;
   initialData?: any;
   draftField: string;
+  draftType?: 'text' | 'file';
   feedbackField: string;
   confirmationField: string;
   uploadField?: string;
@@ -23,6 +23,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   clientCaseId,
   initialData,
   draftField,
+  draftType = 'text',
   feedbackField,
   confirmationField,
   uploadField,
@@ -54,10 +55,6 @@ const TaskForm: React.FC<TaskFormProps> = ({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleColorfulTextAreaChange = (value: string) => {
-    setFormData(prev => ({ ...prev, [draftField]: value }));
-  };
-
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
@@ -66,10 +63,10 @@ const TaskForm: React.FC<TaskFormProps> = ({
     try {
       const data = { ...formData, ...additionalData, clientCaseId };
       await onSubmit(data);
-      setSnackbar({ open: true, message: '保存成功', severity: 'success' });
+      setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
       return true;
     } catch (e: any) {
-      setSnackbar({ open: true, message: e?.message || '保存失败', severity: 'error' });
+      setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });
       return false;
     }
   };
@@ -87,12 +84,25 @@ const TaskForm: React.FC<TaskFormProps> = ({
       {/* Initial Draft */}
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Initial Draft</Typography>
       <Box sx={{ mb: 2 }}>
-        <ColorfulTextArea
-          value={formData[draftField] || ''}
-          onChange={handleColorfulTextAreaChange}
-          userType={userType}
-          readOnly={userType === 'client'}
-        />
+        {draftType === 'file' ? (
+          <FileUploadButton
+            label="Upload Draft (PDF)"
+            fileType={draftField}
+            fileUrl={formData[draftField] || ''}
+            onFileUrlChange={url => setFormData(prev => ({ ...prev, [draftField]: url }))}
+            required
+          />
+        ) : (
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            value={formData[draftField] || ''}
+            onChange={handleTextFieldChange}
+            variant="outlined"
+            sx={{ mb: 2 }}
+          />
+        )}
       </Box>
 
       {userType !== 'client' && (
@@ -155,7 +165,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
           color="primary"
           onClick={async () => {
             if (!formData[feedbackField]?.trim()) {
-              setSnackbar({ open: true, message: '请填写反馈内容', severity: 'error' });
+              setSnackbar({ open: true, message: 'Please fill in the feedback content', severity: 'error' });
               return;
             }
             const success = await handleSubmit();

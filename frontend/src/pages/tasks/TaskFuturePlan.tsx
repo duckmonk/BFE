@@ -2,7 +2,6 @@ import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'rea
 import { Box, Typography, TextField, Button, Snackbar, Alert, MenuItem } from '@mui/material';
 import { infoCollApi, taskApi } from '../../services/api';
 import { getUserType } from '../../utils/user';
-import ColorfulTextArea from '../../components/ColorfulTextArea';
 
 interface TaskFuturePlan {
   id?: number;
@@ -59,11 +58,11 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
 
   const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleColorfulTextAreaChange = (value: string) => {
-    setFormData(prev => ({ ...prev, futureplanDraft: value }));
+    if (name === 'futureplanReferees') {
+      setFormData(prev => ({ ...prev, [name]: (e.target as HTMLInputElement & { value: string[] }).value }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleCloseSnackbar = () => {
@@ -80,9 +79,9 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
       };
       await taskApi.submitFuturePlan(data);
       setFormData(prev => ({ ...prev, futureplanSubmitDraft: 'YES' }));
-      setSnackbar({ open: true, message: '提交成功', severity: 'success' });
+      setSnackbar({ open: true, message: 'Submit successfully', severity: 'success' });
     } catch (e: any) {
-      setSnackbar({ open: true, message: e?.message || '提交失败', severity: 'error' });
+      setSnackbar({ open: true, message: e?.message || 'Submit failed', severity: 'error' });
     }
   };
 
@@ -95,10 +94,13 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
         id: formData.id
       };
       await taskApi.submitFuturePlan(data);
-      setFormData(prev => ({ ...prev, futureplanConfirm: 'YES' }));
-      setSnackbar({ open: true, message: '确认成功', severity: 'success' });
+      const res = await taskApi.getFuturePlan(clientCaseId);
+      if (res && res.data) {
+        setFormData(res.data);
+      }
+      setSnackbar({ open: true, message: 'Confirm successfully', severity: 'success' });
     } catch (e: any) {
-      setSnackbar({ open: true, message: e?.message || '确认失败', severity: 'error' });
+      setSnackbar({ open: true, message: e?.message || 'Confirm failed', severity: 'error' });
     }
   };
 
@@ -118,9 +120,9 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
       try {
         const data = { ...formData, clientCaseId: clientCase.clientCaseId };
         await taskApi.submitFuturePlan(data);
-        setSnackbar({ open: true, message: '保存成功', severity: 'success' });
+        setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
       } catch (e: any) {
-        setSnackbar({ open: true, message: e?.message || '保存失败', severity: 'error' });
+        setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });
       }
     }
   }));
@@ -131,13 +133,15 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
       
       {/* Future Plan Overview */}
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Future Plan Overview</Typography>
-      <Box sx={{ mb: 2 }}>
-        <ColorfulTextArea
-          value={formData.futureplanDraft || ''}
-          onChange={handleColorfulTextAreaChange}
-          userType={userType}
-        />
-      </Box>
+      <TextField
+        fullWidth
+        multiline
+        rows={4}
+        value={formData.futureplanDraft}
+        onChange={(e) => handleTextFieldChange(e)}
+        variant="outlined"
+        sx={{ mb: 2 }}
+      />
 
       {/* Short-Term Plan */}
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Short-Term Plan</Typography>
@@ -149,7 +153,7 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
         size="small"
         sx={{ mb: 2 }}
         value={formData.futureplanShort || ''}
-        onChange={handleTextFieldChange}
+        onChange={(e) => handleTextFieldChange(e)}
         required
       />
 
@@ -163,7 +167,7 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
         size="small"
         sx={{ mb: 2 }}
         value={formData.futureplanLong || ''}
-        onChange={handleTextFieldChange}
+        onChange={(e) => handleTextFieldChange(e)}
         required
       />
 
@@ -175,8 +179,8 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
         fullWidth
         size="small"
         sx={{ mb: 2 }}
-        value={formData.futureplanReferees || []}
-        onChange={handleTextFieldChange}
+        value={Array.isArray(formData.futureplanReferees) ? formData.futureplanReferees : []}
+        onChange={(e) => handleTextFieldChange(e)}
         SelectProps={{
           multiple: true
         }}
@@ -189,20 +193,26 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
       </TextField>
 
       {/* Referee Support Notes */}
-      {(formData.futureplanReferees || []).map((refereeName) => (
-        <Box key={refereeName} sx={{ mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>Support Note for {refereeName}</Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            size="small"
-            value={formData.futureplanRefereeNotes[refereeName] || ''}
-            onChange={(e) => handleRefereeNoteChange(refereeName, e.target.value)}
-            placeholder="Enter support note for this referee..."
-          />
-        </Box>
-      ))}
+      {Array.isArray(formData.futureplanReferees) && formData.futureplanReferees.length > 0
+        ? formData.futureplanReferees.map((refereeName) => (
+            <Box key={refereeName} sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Support Note for {refereeName}</Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                size="small"
+                value={
+                  formData.futureplanRefereeNotes && typeof formData.futureplanRefereeNotes === 'object'
+                    ? formData.futureplanRefereeNotes[refereeName] || ''
+                    : ''
+                }
+                onChange={(e) => handleRefereeNoteChange(refereeName, e.target.value)}
+                placeholder="Enter support note for this referee..."
+              />
+            </Box>
+          ))
+        : null}
 
       {/* Our Overall Feedback */}
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Our Overall Feedback</Typography>
@@ -214,7 +224,7 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
         size="small"
         sx={{ mb: 2 }}
         value={formData.futureplanFeedback || ''}
-        onChange={handleTextFieldChange}
+        onChange={(e) => handleTextFieldChange(e)}
       />
 
       {/* Submit Draft for Review */}

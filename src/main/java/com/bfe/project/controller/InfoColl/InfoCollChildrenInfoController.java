@@ -2,6 +2,8 @@ package com.bfe.project.controller.InfoColl;
 
 import com.bfe.project.entity.InfoColl.InfoCollChildrenInfo;
 import com.bfe.project.service.InfoColl.InfoCollChildrenInfoService;
+import com.bfe.project.entity.ClientCase;
+import com.bfe.project.service.ClientCaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,9 @@ public class InfoCollChildrenInfoController {
 
     @Autowired
     private InfoCollChildrenInfoService infoCollChildrenInfoService;
+    
+    @Autowired
+    private ClientCaseService clientCaseService;
 
     @PostMapping("/upsert")
     public Map<String, Object> saveOrUpdate(@RequestBody List<InfoCollChildrenInfo> childrenInfoList) {
@@ -33,6 +38,12 @@ public class InfoCollChildrenInfoController {
             // 批量保存新的children记录
             infoCollChildrenInfoService.saveBatch(childrenInfoList);
             result.put("status", "updated");
+            
+            // 更新 ClientCase 的完成状态
+            clientCaseService.lambdaUpdate()
+                    .eq(ClientCase::getId, clientCaseId)
+                    .set(ClientCase::getChildrenInfoFinished, true)
+                    .update();
         } else {
             result.put("status", "no_data");
         }

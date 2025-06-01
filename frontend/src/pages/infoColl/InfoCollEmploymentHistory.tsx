@@ -1,5 +1,5 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { Box, Typography, TextField, MenuItem, Snackbar, Alert, Button } from '@mui/material';
+import { Box, Typography, TextField, MenuItem, Snackbar, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import FileUploadButton from '../../components/FileUploadButton';
 import { infoCollApi } from '../../services/api';
 import { extractFileName } from '../../services/s3Service';
@@ -25,9 +25,17 @@ interface EmploymentHistory {
   employmentLetter: string;
 }
 
-const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: number }, ref) => {
+interface EmploymentHistoryErrors {
+  [key: number]: {
+    [key: string]: boolean;
+  };
+}
+
+const InfoCollEmploymentHistory = forwardRef(({ clientCaseId, userId }: { clientCaseId: number, userId: string }, ref) => {
   const [employmentHistories, setEmploymentHistories] = useState<EmploymentHistory[]>([]);
+  const [errors, setErrors] = useState<EmploymentHistoryErrors>({});
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const [validationDialog, setValidationDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   useEffect(() => {
     if (clientCaseId) {
@@ -43,27 +51,51 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
 
   const handleChange = (index: number) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    const updatedHistories = [...employmentHistories];
-    updatedHistories[index] = { ...updatedHistories[index], [name]: value };
-    setEmploymentHistories(updatedHistories);
+    setEmploymentHistories(prev => prev.map((history, i) => 
+      i === index ? { ...history, [name]: value } : history
+    ));
+    // 清除该字段的错误状态
+    setErrors(prev => ({
+      ...prev,
+      [index]: {
+        ...prev[index],
+        [name]: false
+      }
+    }));
   };
 
   const handleSelectChange = (index: number, name: string) => (e: any) => {
-    const updatedHistories = [...employmentHistories];
-    updatedHistories[index] = { ...updatedHistories[index], [name]: e.target.value };
-    setEmploymentHistories(updatedHistories);
+    setEmploymentHistories(prev => prev.map((history, i) => 
+      i === index ? { ...history, [name]: e.target.value } : history
+    ));
+    // 清除该字段的错误状态
+    setErrors(prev => ({
+      ...prev,
+      [index]: {
+        ...prev[index],
+        [name]: false
+      }
+    }));
   };
 
   const handleFileUrlChange = (index: number, name: string, url: string | null) => {
-    const updatedHistories = [...employmentHistories];
-    updatedHistories[index] = { ...updatedHistories[index], [name]: url };
-    setEmploymentHistories(updatedHistories);
+    setEmploymentHistories(prev => prev.map((history, i) => 
+      i === index ? { ...history, [name]: url } : history
+    ));
+    // 清除该字段的错误状态
+    setErrors(prev => ({
+      ...prev,
+      [index]: {
+        ...prev[index],
+        [name]: false
+      }
+    }));
   };
 
   const handleAdd = () => {
     setEmploymentHistories(prev => [...prev, {
       clientCaseId,
-      respondents: '',
+      respondents: userId,
       employerName: '',
       currentEmployer: '',
       employerAddress: '',
@@ -82,25 +114,98 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
 
   const handleDelete = (index: number) => {
     setEmploymentHistories(prev => prev.filter((_, i) => i !== index));
+    // 删除对应的错误状态
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[index];
+      return newErrors;
+    });
   };
 
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
+  // 验证表单
+  const validateForm = (): boolean => {
+    const newErrors: EmploymentHistoryErrors = {};
+    let isValid = true;
+
+    employmentHistories.forEach((history, index) => {
+      const historyErrors: { [key: string]: boolean } = {};
+
+      // 基本必填字段
+      const requiredFields = [
+        'employerName',
+        'currentEmployer',
+        'employerAddress',
+        'businessType',
+        'jobTitle',
+        'salary',
+        'startDate',
+        'hoursPerWeek',
+        'jobSummary',
+        'employmentLetter'
+      ];
+
+      requiredFields.forEach(field => {
+        if (!history[field as keyof EmploymentHistory]) {
+          historyErrors[field] = true;
+          isValid = false;
+        }
+      });
+
+      // 如果当前雇主是 No，End Date 必填
+      if (history.currentEmployer === 'No' && !history.endDate) {
+        historyErrors.endDate = true;
+        isValid = false;
+      }
+
+      if (Object.keys(historyErrors).length > 0) {
+        newErrors[index] = historyErrors;
+      }
+    });
+
+    setErrors(newErrors);
+
+    if (!isValid) {
+      setValidationDialog({
+        open: true,
+        message: 'Please fill in all required fields and upload required documents.'
+      });
+    }
+
+    return isValid;
+  };
+
   useImperativeHandle(ref, () => ({
-    submit: async () => {
+    getFormData: () => employmentHistories,
+    submit: async (clientCase: any) => {
+      if (!validateForm()) {
+        return false;
+      }
+
       try {
-        await infoCollApi.submitEmploymentHistory(employmentHistories);
-        setSnackbar({ open: true, message: '保存成功', severity: 'success' });
+        const historiesWithCaseId = employmentHistories.map(history => ({
+          ...history,
+          clientCaseId: clientCase?.clientCaseId || clientCaseId,
+          respondents: userId
+        }));
+        await infoCollApi.submitEmploymentHistory(clientCaseId, historiesWithCaseId);
+        setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
+        return true;
       } catch (e: any) {
-        setSnackbar({ open: true, message: e?.message || '保存失败', severity: 'error' });
+        setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });
+        return false;
       }
     }
   }));
 
   return (
     <Box>
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        Reminder: If you do not click Save, your changes will be lost.
+      </Alert>
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Employment History</Typography>
 
       {employmentHistories.map((history, index) => (
@@ -123,7 +228,7 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             size="small" 
             sx={{ mb: 2 }} 
             InputProps={{ readOnly: true }} 
-            value="自动生成" 
+            value={userId} 
           />
 
           <TextField
@@ -135,6 +240,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             value={history.employerName || ''}
             onChange={handleChange(index)}
             required
+            error={errors[index]?.employerName}
+            helperText={errors[index]?.employerName ? 'Employer Name is required' : ''}
           />
 
           <TextField
@@ -147,6 +254,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             value={history.currentEmployer || ''}
             onChange={handleSelectChange(index, 'currentEmployer')}
             required
+            error={errors[index]?.currentEmployer}
+            helperText={errors[index]?.currentEmployer ? 'Current employer status is required' : ''}
           >
             {yesNoOptions.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
           </TextField>
@@ -160,6 +269,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             value={history.employerAddress || ''}
             onChange={handleChange(index)}
             required
+            error={errors[index]?.employerAddress}
+            helperText={errors[index]?.employerAddress ? 'Employer Address is required' : ''}
           />
 
           <TextField
@@ -181,6 +292,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             value={history.businessType || ''}
             onChange={handleChange(index)}
             required
+            error={errors[index]?.businessType}
+            helperText={errors[index]?.businessType ? 'Type of Business is required' : ''}
           />
 
           <TextField
@@ -192,6 +305,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             value={history.jobTitle || ''}
             onChange={handleChange(index)}
             required
+            error={errors[index]?.jobTitle}
+            helperText={errors[index]?.jobTitle ? 'Job Title is required' : ''}
           />
 
           <TextField
@@ -205,6 +320,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             onChange={handleChange(index)}
             inputProps={{ step: "0.1" }}
             required
+            error={errors[index]?.salary}
+            helperText={errors[index]?.salary ? 'Salary is required' : ''}
           />
 
           <TextField
@@ -218,6 +335,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             value={history.startDate || ''}
             onChange={handleChange(index)}
             required
+            error={errors[index]?.startDate}
+            helperText={errors[index]?.startDate ? 'Start Date is required' : ''}
           />
 
           <TextField
@@ -231,6 +350,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             value={history.endDate || ''}
             onChange={handleChange(index)}
             required={history.currentEmployer === 'No'}
+            error={errors[index]?.endDate}
+            helperText={errors[index]?.endDate ? 'End Date is required for non-current employers' : ''}
           />
 
           <TextField
@@ -244,6 +365,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             onChange={handleChange(index)}
             inputProps={{ step: "0.1" }}
             required
+            error={errors[index]?.hoursPerWeek}
+            helperText={errors[index]?.hoursPerWeek ? 'Hours per week is required' : ''}
           />
 
           <TextField
@@ -257,6 +380,8 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             value={history.jobSummary || ''}
             onChange={handleChange(index)}
             required
+            error={errors[index]?.jobSummary}
+            helperText={errors[index]?.jobSummary ? 'Job Summary is required' : ''}
           />
 
           <TextField
@@ -274,6 +399,7 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
             fileType="employmentLetter"
             onFileUrlChange={url => handleFileUrlChange(index, 'employmentLetter', url)}
             required
+            error={errors[index]?.employmentLetter}
             fileUrl={history.employmentLetter}
             fileName={history.employmentLetter && extractFileName(history.employmentLetter)}
           />
@@ -298,6 +424,21 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId }: { clientCaseId: 
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog
+        open={validationDialog.open}
+        onClose={() => setValidationDialog({ open: false, message: '' })}
+      >
+        <DialogTitle>Validation Error</DialogTitle>
+        <DialogContent>
+          <Typography>{validationDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidationDialog({ open: false, message: '' })}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 });

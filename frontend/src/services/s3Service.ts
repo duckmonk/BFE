@@ -7,6 +7,8 @@ const s3Client = new S3Client({
     accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY || '',
   },
+  maxAttempts: 3,
+  forcePathStyle: true,
 });
 
 console.log('S3 Client initialized with config:', {

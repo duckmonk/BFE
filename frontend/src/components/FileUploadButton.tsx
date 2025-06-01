@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Button, CircularProgress, Box, Typography, IconButton } from '@mui/material';
+import { Button, CircularProgress, Box, Typography, IconButton, Dialog, DialogContent, DialogActions, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { uploadFileToS3 } from '../services/s3Service';
 
 interface FileUploadButtonProps {
@@ -14,6 +16,7 @@ interface FileUploadButtonProps {
   required?: boolean;
   fileUrl?: string | null;
   fileName?: string | null;
+  error?: boolean;
 }
 
 const FileUploadButton: React.FC<FileUploadButtonProps> = ({
@@ -27,10 +30,14 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   required = false,
   fileUrl: propFileUrl,
   fileName: propFileName,
+  error = false,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | null>(propFileUrl || null);
   const [fileName, setFileName] = useState<string | null>(propFileName || (propFileUrl ? propFileUrl.split('/').pop()! : null));
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   useEffect(() => {
     setFileUrl(propFileUrl || null);
@@ -70,11 +77,37 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
     onFileUrlChange?.(null);
   };
 
+  const handlePreview = () => {
+    setPreviewOpen(true);
+    setPreviewError(null);
+    setIsPreviewLoading(true);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewOpen(false);
+    setPreviewError(null);
+  };
+
+  const handlePreviewLoad = () => {
+    setIsPreviewLoading(false);
+  };
+
+  const handlePreviewError = () => {
+    setIsPreviewLoading(false);
+    setPreviewError('Cannot load preview, please try to download the file to view.');
+  };
+
+  const handleDownload = () => {
+    if (fileUrl) {
+      window.open(fileUrl, '_blank');
+    }
+  };
+
   return (
     <Box sx={{ mb: 2 }}>
       <Typography
         variant="subtitle2"
-        color={required ? 'primary' : 'text.secondary'}
+        color={error ? 'error' : required ? 'primary' : 'text.secondary'}
         sx={{ mb: 0.5, fontWeight: 500 }}
       >
         {label}{required && ' *'}
@@ -85,13 +118,20 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
           variant="outlined"
           component="label"
           disabled={disabled || isUploading}
-          sx={{ width: '100%', justifyContent: 'flex-start' }}
+          sx={{ 
+            width: '100%', 
+            justifyContent: 'flex-start',
+            borderColor: error ? 'error.main' : undefined,
+            '&:hover': {
+              borderColor: error ? 'error.main' : undefined,
+            }
+          }}
         >
           {isUploading ? (
             <CircularProgress size={24} />
           ) : (
             <>
-              选择文件
+              Choose PDF file
               <input
                 type="file"
                 accept={accept}
@@ -122,6 +162,20 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
           </Typography>
           <IconButton 
             size="small" 
+            onClick={handlePreview}
+            sx={{ ml: 1 }}
+          >
+            <VisibilityIcon fontSize="small" />
+          </IconButton>
+          <IconButton 
+            size="small" 
+            onClick={handleDownload}
+            sx={{ ml: 1 }}
+          >
+            <DownloadIcon fontSize="small" />
+          </IconButton>
+          <IconButton 
+            size="small" 
             onClick={handleDelete}
             sx={{ ml: 1 }}
           >
@@ -129,6 +183,57 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
           </IconButton>
         </Box>
       )}
+
+      <Dialog
+        open={previewOpen}
+        onClose={handleClosePreview}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogContent sx={{ p: 0, height: '80vh', position: 'relative' }}>
+          {isPreviewLoading && (
+            <Box sx={{ 
+              position: 'absolute', 
+              top: '50%', 
+              left: '50%', 
+              transform: 'translate(-50%, -50%)',
+              zIndex: 1
+            }}>
+              <CircularProgress />
+            </Box>
+          )}
+          
+          {previewError && (
+            <Box sx={{ p: 2 }}>
+              <Alert severity="error">{previewError}</Alert>
+            </Box>
+          )}
+
+          {fileUrl && !previewError && (
+            <iframe
+              src={`${fileUrl}#toolbar=0`}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                border: 'none',
+                visibility: isPreviewLoading ? 'hidden' : 'visible'
+              }}
+              title="PDF Preview"
+              onLoad={handlePreviewLoad}
+              onError={handlePreviewError}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePreview}>Close</Button>
+          <Button 
+            onClick={handleDownload}
+            startIcon={<DownloadIcon />}
+          >
+            Download file
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
