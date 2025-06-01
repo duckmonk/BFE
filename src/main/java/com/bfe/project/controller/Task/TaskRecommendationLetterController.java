@@ -29,19 +29,13 @@ public class TaskRecommendationLetterController {
 
         // 2. 获取推荐人信息
         Map<String, Object> response = infoCollRecommenderController.getRecommenderNames(caseId);
-        System.out.println("getRecommenderNames response: " + response);
-        
         if (response == null || !response.containsKey("recommenders")) {
-            System.out.println("response is null or does not contain 'recommenders' key");
             return new ArrayList<>();
         }
         
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> recommenders = (List<Map<String, Object>>) response.get("recommenders");
-        System.out.println("recommenders: " + recommenders);
-        
         if (recommenders.isEmpty()) {
-            System.out.println("recommenders is empty");
             return new ArrayList<>();
         }
         
@@ -61,15 +55,7 @@ public class TaskRecommendationLetterController {
             
             TaskRecommendationLetter letter = letterMap.get(refereeName);
             if (letter == null) {
-                // 如果没有推荐信，创建新的
-                letter = new TaskRecommendationLetter();
-                letter.setClientCaseId(caseId);
-                letter.setRlRefereeName(refereeName);
-                letter.setRlDraft("");
-                letter.setRlOverallFeedback("");
-                letter.setRlConfirm("");
-                letter.setRlSignedLetter("");
-                recommendationLetterService.save(letter);
+                continue; // 跳过不存在的推荐信
             }
             
             // 添加到结果列表
@@ -85,24 +71,6 @@ public class TaskRecommendationLetterController {
             result.add(letterInfo);
         }
 
-        // 5. 删除多余的推荐信
-        Set<String> validRefereeNames = recommenders.stream()
-                .map(r -> (String) r.get("name"))
-                .collect(Collectors.toSet());
-                
-        List<TaskRecommendationLetter> lettersToDelete = existingLetters.stream()
-                .filter(letter -> !validRefereeNames.contains(letter.getRlRefereeName()))
-                .collect(Collectors.toList());
-        
-        if (!lettersToDelete.isEmpty()) {
-            recommendationLetterService.removeByIds(
-                lettersToDelete.stream()
-                    .map(TaskRecommendationLetter::getId)
-                    .collect(Collectors.toList())
-            );
-        }
-
-        System.out.println("final result: " + result);
         return result;
     }
 

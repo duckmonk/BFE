@@ -1,19 +1,17 @@
-package com.bfe.project.entity.InfoColl;
+package com.bfe.project.entity.Task;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.ToString;
 
 @Data
-@ToString
-@TableName("info_coll_final_questionnaire")
-public class InfoCollFinalQuestionnaire {
+@TableName("task_final_questionnaire")
+public class TaskFinalQuestionnaire {
     @TableId(type = IdType.AUTO)
     private Integer id;
-
-    // 关联案件ID
     private Integer clientCaseId;
-
+    
     // 最终问卷信息
     private String respondents;
     private String changesSelected;
@@ -29,4 +27,11 @@ public class InfoCollFinalQuestionnaire {
     private String childrenSubmission;
     private String immigrationUpdates;
     private String immigrationDocuments;
+    
+    // 任务相关字段
+    private String finalQuestionnaireDraft;
+    private String finalQuestionnaireOverall;
+    private String finalQuestionnaireConfirm;
+    private Long createTimestamp;
+    private Long updateTimestamp;
 } 

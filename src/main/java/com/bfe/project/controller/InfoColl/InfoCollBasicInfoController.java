@@ -3,6 +3,8 @@ package com.bfe.project.controller.InfoColl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.bfe.project.entity.InfoColl.InfoCollBasicInfo;
 import com.bfe.project.service.InfoColl.InfoCollBasicInfoService;
+import com.bfe.project.entity.ClientCase;
+import com.bfe.project.service.ClientCaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,9 @@ public class InfoCollBasicInfoController {
 
     @Autowired
     private InfoCollBasicInfoService infoCollBasicInfoService;
+    
+    @Autowired
+    private ClientCaseService clientCaseService;
 
     @PostMapping("/save")
     public ResponseEntity<InfoCollBasicInfo> save(@RequestBody InfoCollBasicInfo basicInfo) {
@@ -54,6 +59,12 @@ public class InfoCollBasicInfoController {
             infoCollBasicInfoService.save(basicInfo);
             result.put("status", "inserted");
         }
+        
+        // 更新 ClientCase 的完成状态
+        clientCaseService.lambdaUpdate()
+                .eq(ClientCase::getId, basicInfo.getClientCaseId())
+                .set(ClientCase::getBasicInfoFinished, true)
+                .update();
         
         result.put("data", basicInfo);
         return result;
