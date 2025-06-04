@@ -25,11 +25,11 @@ public class InfoCollAcademicHistoryController {
     @PostMapping("/upsert/{clientCaseId}")
     public Map<String, Object> saveOrUpdate(@PathVariable Integer clientCaseId, @RequestBody List<InfoCollAcademicHistory> academicHistoryList) {
         Map<String, Object> result = new HashMap<>();
-            
-            // 删除该case下的所有academic history记录
-            infoCollAcademicHistoryService.lambdaUpdate()
-                    .eq(InfoCollAcademicHistory::getClientCaseId, clientCaseId)
-                    .remove();
+        
+        // 删除该case下的所有academic history记录
+        infoCollAcademicHistoryService.lambdaUpdate()
+                .eq(InfoCollAcademicHistory::getClientCaseId, clientCaseId)
+                .remove();
             
         // 如果有新数据，则保存
         if (academicHistoryList != null && !academicHistoryList.isEmpty()) {

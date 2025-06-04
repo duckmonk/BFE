@@ -94,6 +94,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
           />
         ) : (
           <TextField
+            name={draftField}
             fullWidth
             multiline
             rows={4}

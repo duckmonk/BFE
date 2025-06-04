@@ -62,15 +62,6 @@ const CaseDetails: React.FC = () => {
             { label: 'Material for NIW Petition', form: InfoCollNiwPetition, finished: clientCase?.niwPetitionFinished },
             { label: 'Recommender Info', form: InfoCollRecommender, finished: clientCase?.recommenderFinished }
           ]
-        },
-        {
-          title: 'Format',
-          collapsable: true,
-          children: [
-            { label: 'PL Formatting', form: PLFormatting },
-            { label: 'Immigration Forms', form: ImmigrationForms },
-            { label: 'Combine All Documents', form: CombineDocuments }
-          ]
         }
       ]
       : [
@@ -207,9 +198,9 @@ const CaseDetails: React.FC = () => {
 
   return (
     <Box sx={{ bgcolor: '#f3f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Container maxWidth="md" sx={{ pt: 6, pb: 6, flex: 1 }}>
+      <Container maxWidth="lg" sx={{ pt: 6, pb: 6, flex: 1 }}>
         <Typography variant="h6" fontWeight={700} sx={{ mb: 4 }}>
-          NW Process
+          NIW Process
         </Typography>
         <Grid container spacing={4}>
           {/* 左侧步骤导航 */}
@@ -299,12 +290,14 @@ const CaseDetails: React.FC = () => {
           <Grid size={{ xs: 12, md: 8 }}>
             <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: 4, border: '1px solid #e0e6ef', minHeight: 500, position: 'relative', pb: 12 }}>
               {/* 动态渲染表单并传递ref */}
-              {CurrentForm && clientCase && React.createElement(CurrentForm as any, { 
-                ref: formRef, 
-                clientCaseId: clientCase.clientCaseId,
-                userId: clientCase.userId,
-                immigrationForms: clientCase.immigrationForms
-              })}
+              {CurrentForm && clientCase && (
+                React.createElement(CurrentForm as any, { 
+                  ref: formRef, 
+                  clientCaseId: clientCase.clientCaseId,
+                  userId: clientCase.userId,
+                  immigrationForms: clientCase.immigrationForms || null
+                })
+              )}
               {shouldShowSaveButton() && (
                 <Box sx={{ position: 'absolute', right: 32, bottom: 64 }}>
                   <Button variant="contained" color="primary" sx={{ px: 5, py: 1.2, fontWeight: 700 }} onClick={handleSave}>

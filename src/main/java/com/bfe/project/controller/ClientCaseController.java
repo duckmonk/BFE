@@ -187,8 +187,22 @@ public class ClientCaseController {
         return result;
     }
 
+    // 组装 LaTeX 文档的公共方法
+    private String assembleLatexDocument(List<String> textList) {
+        return String.format("\\documentclass{article}\n" +
+                "\\usepackage{geometry}\n" +
+                "\\geometry{a4paper,margin=1in}\n" +
+                "\\begin{document}\n" +
+                "%s\n" +
+                "\\end{document}",
+                String.join("\\par\n", textList.stream()
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toList())));
+    }
+
     @PostMapping("/save-and-preview-latex")
-    public ResponseEntity<byte[]> saveAndPreviewLatex(@RequestParam Integer caseId, @RequestBody String latexContent) {
+    public ResponseEntity<byte[]> saveAndPreviewLatex(@RequestParam Integer caseId, @RequestBody List<String> textList) {
         try {
             // 1. 根据 caseId 查找 ClientCase 实体
             ClientCase clientCase = clientCaseService.getById(caseId);
@@ -196,14 +210,17 @@ public class ClientCaseController {
                 return ResponseEntity.badRequest().body(("Case with ID " + caseId + " not found.").getBytes());
             }
 
-            // 2. 保存 LaTeX 内容到 pl_formatting 字段
-            clientCase.setPlFormatting(latexContent);
+            // 2. 保存文本列表到 pl_formatting 字段
+            clientCase.setPlFormatting(String.join("\\par", textList));
             clientCaseService.updateById(clientCase);
 
-            // 3. 调用 LaTeXService 生成 PDF
+            // 3. 组装 LaTeX 文档用于生成 PDF
+            String latexContent = assembleLatexDocument(textList);
+
+            // 4. 调用 LaTeXService 生成 PDF
             byte[] pdfBytes = latexService.convertLatexToPdf(latexContent);
 
-            // 4. 返回 PDF 内容
+            // 5. 返回 PDF 内容
             return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header("Content-Disposition", "attachment; filename=\"document.pdf\"")
@@ -232,11 +249,17 @@ public class ClientCaseController {
                 return ResponseEntity.badRequest().build();
             }
 
+            // 将存储的文本列表转换回数组
+            List<String> textList = Arrays.asList(plFormatting.split("\\\\par"));
+            
+            // 组装 LaTeX 文档
+            String latexContent = assembleLatexDocument(textList);
+
             // 将上传的PDF文件转换为字节数组
             byte[] immigrationFormsBytes = immigrationForms.getBytes();
 
             // 合并PDF
-            byte[] combinedPdf = pdfMergeService.mergePdfs(plFormatting, immigrationFormsBytes);
+            byte[] combinedPdf = pdfMergeService.mergePdfs(latexContent, immigrationFormsBytes);
 
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_PDF)

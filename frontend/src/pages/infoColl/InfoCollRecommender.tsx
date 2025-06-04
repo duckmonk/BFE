@@ -6,6 +6,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { infoCollApi } from '../../services/api';
 import FileUploadButton from '../../components/FileUploadButton';
 import { extractFileName } from '../../services/s3Service';
+import { useNavigate } from 'react-router-dom';
 
 const refereeTypeOptions = ['Dependent', 'Independent'];
 const pronounOptions = ['He/Him', 'She/Her'];
@@ -41,6 +42,7 @@ interface RecommenderErrors {
 }
 
 const InfoCollRecommender = forwardRef(({ clientCaseId }: { clientCaseId: number }, ref) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<{ [key: string]: any }>({});
   const [recommenders, setRecommenders] = useState<Recommender[]>([]);
   const [contributions, setContributions] = useState<string[]>([]);
@@ -243,7 +245,7 @@ const InfoCollRecommender = forwardRef(({ clientCaseId }: { clientCaseId: number
       </Alert>
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recommender Information</Typography>
       
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
         <Button
           startIcon={<AddIcon />}
           onClick={handleAddRecommender}
@@ -546,7 +548,23 @@ const InfoCollRecommender = forwardRef(({ clientCaseId }: { clientCaseId: number
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+          action={
+            snackbar.severity === 'success' && (
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={() => navigate('/landing')}
+                sx={{ ml: 2 }}
+              >
+                Back to Landing Page
+              </Button>
+            )
+          }
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

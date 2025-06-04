@@ -89,6 +89,7 @@ public class TaskFinalQuestionnaireController {
             questionnaire.setChildrenSubmission((String) data.get("childrenSubmission"));
             questionnaire.setImmigrationUpdates((String) data.get("immigrationUpdates"));
             questionnaire.setImmigrationDocuments((String) data.get("immigrationDocuments"));
+            questionnaire.setFinalQuestionnaireConfirm((String) data.get("finalQuestionnaireConfirm"));
             
             // 处理 changesSelected 数组
             if (data.get("changesSelected") != null) {

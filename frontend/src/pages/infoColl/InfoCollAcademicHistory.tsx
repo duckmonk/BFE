@@ -224,7 +224,8 @@ const InfoCollAcademicHistory = forwardRef(({ clientCaseId, userId }: { clientCa
       }
 
       try {
-        await infoCollApi.submitAcademicHistory(clientCaseId, academicHistories);
+        const processedHistories = academicHistories.map(({ id, ...rest }) => rest);
+        await infoCollApi.submitAcademicHistory(clientCaseId, processedHistories);
         setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
       } catch (e: any) {
         setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });

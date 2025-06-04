@@ -145,7 +145,7 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
         sx={{ mb: 2 }}
         value={formData.endeavorFeedback || ''}
         onChange={handleChange}
-        InputProps={{ readOnly: isApproved }}
+        InputProps={{ readOnly: isApproved || userType !== 'client' }}
       />
       {userType === 'client' && !isApproved && (
         <Button
@@ -165,12 +165,12 @@ const TaskEndeavorSubmission = forwardRef(({ clientCaseId }: { clientCaseId: num
           <Checkbox
             checked={localChecked}
             onChange={e => setLocalChecked(e.target.checked)}
-            disabled={isApproved}
+            disabled={isApproved || userType !== 'client'}
           />
         }
         label="I approve this final version"
       />
-      {localChecked && !isApproved && (
+      {localChecked && !isApproved && userType === 'client' && (
         <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mb: 2 }}>
           (Uncheck: I request further changes)
         </Typography>

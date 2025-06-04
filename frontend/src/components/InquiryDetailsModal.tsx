@@ -210,6 +210,7 @@ const InquiryDetailsModal: React.FC<InquiryDetailsModalProps> = ({
                 label="What is the NIW evaluation score?"
                 type="number"
                 value={formData?.niwScoreInq || ''}
+                onChange={(e) => handleChange('niwScoreInq', e.target.value)}
                 disabled={isFieldDisabled('niwScoreInq', user?.userType)}
               />
             </Grid>

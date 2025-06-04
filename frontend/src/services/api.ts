@@ -83,12 +83,10 @@ export const clientCaseApi = {
   createCase: async (): Promise<any> => {
     return api.post(`${API_PATHS.CLIENT_CASE}/create`);
   },
-  saveAndPreviewLatex: async (caseId: number, latexContent: string): Promise<Blob> => {
-    const response = await api.post(`${API_PATHS.CLIENT_CASE}/save-and-preview-latex?caseId=${caseId}`, latexContent, {
-      headers: { 'Content-Type': 'text/plain' },
+  saveAndPreviewLatex: (caseId: number, textList: string[]): Promise<Blob> => {
+    return api.post(`${API_PATHS.CLIENT_CASE}/save-and-preview-latex?caseId=${caseId}`, textList, {
       responseType: 'blob'
-    });
-    return response.data;
+    }).then(response => response.data);
   },
   update: async (data: any): Promise<any> => {
     return api.put(`${API_PATHS.CLIENT_CASE}/update`, data);
@@ -302,6 +300,7 @@ export const taskApi = {
     childrenSubmission: string;
     immigrationUpdates: string;
     immigrationDocuments: string;
+    finalQuestionnaireConfirm: string;
   }) => {
     return api.post(`${API_PATHS.TASK}/final-questionnaire/upsert`, data);
   }

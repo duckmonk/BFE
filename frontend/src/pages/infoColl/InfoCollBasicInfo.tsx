@@ -4,6 +4,9 @@ import FileUploadButton from '../../components/FileUploadButton';
 import { infoCollApi } from '../../services/api';
 import { extractFileName } from '../../services/s3Service';
 import { countryOptions } from '../../constants/countries';
+// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+// import { enUS, zhCN } from 'date-fns/locale'; // Import the English (US) locale
 
 const genderOptions = ['Male', 'Female', 'Other'];
 const yesNoOptions = ['Yes', 'No'];
@@ -285,6 +288,7 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId, userId }: { clientCaseId: 
         error={errors.dob}
         helperText={errors.dob ? 'Date of Birth is required' : ''}
       />
+      
 
       {/* SSN */}
       <TextField

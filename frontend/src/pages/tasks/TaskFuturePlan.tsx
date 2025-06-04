@@ -134,11 +134,12 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
       {/* Future Plan Overview */}
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Future Plan Overview</Typography>
       <TextField
+        name="futureplanDraft"
         fullWidth
         multiline
         rows={4}
         value={formData.futureplanDraft}
-        onChange={(e) => handleTextFieldChange(e)}
+        onChange={handleTextFieldChange}
         variant="outlined"
         sx={{ mb: 2 }}
       />
@@ -228,28 +229,32 @@ const TaskFuturePlan = forwardRef(({ clientCaseId }: { clientCaseId: number }, r
       />
 
       {/* Submit Draft for Review */}
-      <Button
-        variant="contained"
-        color="primary"
-        fullWidth
-        onClick={handleSubmitDraft}
-        disabled={formData.futureplanSubmitDraft === 'YES'}
-        sx={{ mb: 3 }}
-      >
-        {formData.futureplanSubmitDraft === 'YES' ? 'Submitted' : 'Submit for Review'}
-      </Button>
+      {userType === 'client' && (
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          onClick={handleSubmitDraft}
+          disabled={formData.futureplanSubmitDraft === 'YES'}
+          sx={{ mb: 3 }}
+        >
+          {formData.futureplanSubmitDraft === 'YES' ? 'Submitted' : 'Submit for Review'}
+        </Button>
+      )}
 
       {/* Confirm & Move to Next Step */}
-      <Button
-        variant="contained"
-        color="primary"
-        fullWidth
-        onClick={handleConfirm}
-        disabled={formData.futureplanConfirm === 'YES'}
-        sx={{ mb: 3 }}
-      >
-        {formData.futureplanConfirm === 'YES' ? 'Approved' : 'Approve & Continue'}
-      </Button>
+      {userType !== 'client' && (
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          onClick={handleConfirm}
+          disabled={formData.futureplanConfirm === 'YES'}
+          sx={{ mb: 3 }}
+        >
+          {formData.futureplanConfirm === 'YES' ? 'Approved' : 'Approve & Continue'}
+        </Button>
+      )}
 
       <Snackbar
         open={snackbar.open}

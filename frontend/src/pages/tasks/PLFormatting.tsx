@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Box, TextField, Button, Paper, Typography, Grid, Modal, Backdrop, Fade } from '@mui/material';
-import {  clientCaseApi } from '../../services/api';
+import { Box, TextField, Button, Paper, Typography, Grid, Modal, Backdrop, Fade, IconButton } from '@mui/material';
+import { clientCaseApi } from '../../services/api';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 // Modal style
 const modalStyle = {
@@ -19,40 +21,36 @@ const modalStyle = {
 };
 
 const PLFormatting: React.FC<{ clientCaseId: number }> = ({ clientCaseId }) => {
-  const [latex, setLatex] = useState('');
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null); // Keep pdfUrl for modal and download
+  const [textItems, setTextItems] = useState<string[]>(['']);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [openModal, setOpenModal] = useState(false); // New state for modal visibility
+  const [openModal, setOpenModal] = useState(false);
 
-  console.log('PLFormatting state - loading:', loading, 'latex:', latex, 'clientCaseId prop:', clientCaseId);
+  console.log('PLFormatting state - loading:', loading, 'textItems:', textItems, 'clientCaseId prop:', clientCaseId);
 
   // Fetch data on component mount and when clientCaseId changes
   useEffect(() => {
-    console.log('useEffect triggered - clientCaseId:', clientCaseId);
     if (clientCaseId) {
       const fetchPlFormatting = async () => {
         try {
-          console.log('Fetching plFormatting for case ID:', clientCaseId);
-          // Assuming clientCaseApi.getCaseById returns the case object including plFormatting
           const response = await clientCaseApi.getCaseById(clientCaseId);
-          console.log('Case data response:', response.data);
           if (response.data && response.data.plFormatting) {
-            setLatex(response.data.plFormatting);
-            console.log('Set latex from fetched data:', response.data.plFormatting);
+            // 从后端获取文本列表
+            const items = response.data.plFormatting.split('\\par').filter((item: string) => item.trim());
+            setTextItems(items.length > 0 ? items : ['']);
           } else {
-             console.log('No plFormatting data found for this case.');
-             setLatex(''); // Clear latex if no data found
+            setTextItems(['']);
           }
         } catch (error) {
           console.error('Failed to fetch plFormatting data:', error);
-          // Optionally set an error state or display a message
+          setTextItems(['']);
         }
       };
       fetchPlFormatting();
     } else {
-        setLatex(''); // Clear latex if clientCaseId is null/undefined
+      setTextItems(['']);
     }
-  }, [clientCaseId]); // Re-run effect when clientCaseId changes
+  }, [clientCaseId]);
 
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => {
@@ -64,8 +62,19 @@ const PLFormatting: React.FC<{ clientCaseId: number }> = ({ clientCaseId }) => {
     }
   };
 
-  const handleLatexChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setLatex(event.target.value);
+  const handleTextChange = (index: number, value: string) => {
+    const newItems = [...textItems];
+    newItems[index] = value;
+    setTextItems(newItems);
+  };
+
+  const handleAddItem = () => {
+    setTextItems([...textItems, '']);
+  };
+
+  const handleDeleteItem = (index: number) => {
+    const newItems = textItems.filter((_, i) => i !== index);
+    setTextItems(newItems.length > 0 ? newItems : ['']);
   };
 
   const handleRender = async () => {
@@ -74,24 +83,20 @@ const PLFormatting: React.FC<{ clientCaseId: number }> = ({ clientCaseId }) => {
       return;
     }
     setLoading(true);
-    if (pdfUrl) { // Clean up previous URL if exists
+    if (pdfUrl) {
       window.URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
     }
     try {
-      // Using latex.trim() as per the last accepted change
-      const fullLatexContent = latex.trim(); 
-      console.log('Sending LaTeX content for case ID '+ clientCaseId + ':', fullLatexContent);
-
-      // Call the new save and preview endpoint using clientCaseApi
-      const pdfBlob = await clientCaseApi.saveAndPreviewLatex(clientCaseId, fullLatexContent);
-
+      // 只发送文本列表到后端
+      const textList = textItems.filter(item => item.trim());
+      const pdfBlob = await clientCaseApi.saveAndPreviewLatex(clientCaseId, textList);
       const url = window.URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
-      handleOpenModal(); // Open modal on success
+      handleOpenModal();
     } catch (error) {
       console.error('Rendering failed:', error);
-      alert('Rendering failed, please check the LaTeX syntax and ensure backend is running.');
+      alert('Rendering failed, please check the content and ensure backend is running.');
     }
     setLoading(false);
   };
@@ -113,27 +118,45 @@ const PLFormatting: React.FC<{ clientCaseId: number }> = ({ clientCaseId }) => {
       <Grid container spacing={3} direction="column">
         <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle1" sx={{ mb: 2 }}>LaTeX Editor</Typography>
-            <TextField
-              fullWidth
-              multiline
-              rows={10}
-              value={latex}
-              onChange={handleLatexChange}
-              placeholder="Input LaTeX formula..."
-              variant="outlined"
-            />
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>Document Content</Typography>
+            {textItems.map((text, index) => (
+              <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={text}
+                  onChange={(e) => handleTextChange(index, e.target.value)}
+                  placeholder="Enter text content..."
+                  variant="outlined"
+                  sx={{ mr: 1 }}
+                />
+                <IconButton 
+                  onClick={() => handleDeleteItem(index)}
+                  // disabled={textItems.length === 1}
+                  sx={{ mt: 1 }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            ))}
+            <Button
+              startIcon={<AddIcon />}
+              onClick={handleAddItem}
+              sx={{ mb: 2 }}
+            >
+              Add Section
+            </Button>
             <Button
               variant="contained"
               sx={{ mt: 2, bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#333' } }}
               onClick={handleRender}
-              disabled={loading || !latex || !clientCaseId}
+              disabled={loading || !textItems.some(item => item.trim()) || !clientCaseId}
             >
               {loading ? 'Rendering...' : 'Save and preview'}
             </Button>
           </Paper>
         </Grid>
-        {/* Removed the static preview grid item */}
       </Grid>
 
       {/* PDF Preview Modal */}

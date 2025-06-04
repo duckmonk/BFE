@@ -116,6 +116,8 @@ const CombineDocuments: React.FC<CombineDocumentsProps> = ({ clientCaseId, immig
         link.remove();
     };
 
+    console.log('loading:', loading, 'clientCaseId:', clientCaseId, 'immigrationForms:', immigrationForms);
+
     return (
         <Box sx={{ p: 2 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Combine Documents</Typography>

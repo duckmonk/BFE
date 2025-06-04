@@ -3,6 +3,7 @@ import { Box, Typography, TextField, MenuItem, Snackbar, Alert, Accordion, Accor
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { taskApi } from '../../services/api';
 import FileUploadButton from '../../components/FileUploadButton';
+import { getUserType } from '../../utils/user';
 
 const changeOptions = [
   'Passport Information',
@@ -32,6 +33,7 @@ interface FinalQuestionnaire {
   childrenSubmission: string;
   immigrationUpdates: string;
   immigrationDocuments: string;
+  finalQuestionnaireConfirm?: string;
 }
 
 const TaskFinalQuestionnaire = forwardRef(({ clientCaseId, userId }: { clientCaseId: number, userId: string }, ref) => {
@@ -53,6 +55,7 @@ const TaskFinalQuestionnaire = forwardRef(({ clientCaseId, userId }: { clientCas
     immigrationDocuments: ''
   });
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const userType = getUserType();
 
   useEffect(() => {
     if (clientCaseId) {
@@ -87,15 +90,11 @@ const TaskFinalQuestionnaire = forwardRef(({ clientCaseId, userId }: { clientCas
 
   const handleSave = async () => {
     try {
-      const response = await taskApi.submitFinalQuestionnaire({ ...formData, clientCaseId });
-      if (response.data) {
-        // 保持当前的 changesSelected 值
-        const currentChangesSelected = formData.changesSelected;
-        setFormData(prev => ({
-          ...response.data,
-          changesSelected: currentChangesSelected
-        }));
-      }
+      const response = await taskApi.submitFinalQuestionnaire({ 
+        ...formData, 
+        clientCaseId,
+        finalQuestionnaireConfirm: 'YES'
+      });
       setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
     } catch (e: any) {
       setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });
@@ -106,11 +105,12 @@ const TaskFinalQuestionnaire = forwardRef(({ clientCaseId, userId }: { clientCas
     getFormData: () => formData,
     submit: async (clientCase: any) => {
       try {
-        const data = { ...formData, clientCaseId: clientCase.clientCaseId };
+        const data = { 
+          ...formData, 
+          clientCaseId: clientCase.clientCaseId,
+          finalQuestionnaireConfirm: 'YES'
+        };
         const response = await taskApi.submitFinalQuestionnaire(data);
-        if (response.data) {
-          setFormData(response.data);
-        }
         setSnackbar({ open: true, message: 'Successfully saved', severity: 'success' });
       } catch (e: any) {
         setSnackbar({ open: true, message: e?.message || 'Save failed', severity: 'error' });
@@ -341,15 +341,19 @@ const TaskFinalQuestionnaire = forwardRef(({ clientCaseId, userId }: { clientCas
           </Accordion>
         )}
 
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={handleSave}
-          sx={{ mb: 3 }}
-        >
-          Save
-        </Button>
+        {userType === 'client' && (
+          <Box sx={{ mt: 4 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              onClick={handleSave}
+              sx={{ mb: 3 }}
+            >
+              Save
+            </Button>
+          </Box>
+        )}
 
         <Snackbar
           open={snackbar.open}
