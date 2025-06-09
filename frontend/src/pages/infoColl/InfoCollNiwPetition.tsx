@@ -5,6 +5,8 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { infoCollApi } from '../../services/api';
 import FileUploadButton from '../../components/FileUploadButton';
+import InfoCollAlert from '../../components/InfoCollAlert';
+import { extractFileName } from '../../services/s3Service';
 
 const userPathOptions = ['Academic', 'Industry', 'Hybrid'];
 const yesNoOptions = ['Yes', 'No'];
@@ -117,7 +119,7 @@ interface ValidationErrors {
   [key: string]: boolean;
 }
 
-const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number }, ref) => {
+const InfoCollNiwPetition = forwardRef(({ clientCaseId, userType }: { clientCaseId: number, userType: string }, ref) => {
   const [formData, setFormData] = useState<{ [key: string]: any }>({});
   const [contributions, setContributions] = useState<AcademicContribution[]>([]);
   const [industryContributions, setIndustryContributions] = useState<IndustryContribution[]>([]);
@@ -909,9 +911,7 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
 
   return (
     <Box component="form" noValidate autoComplete="off">
-      <Alert severity="warning" sx={{ mb: 2 }}>
-        Reminder: If you do not click Save, your changes will be lost.
-      </Alert>
+      <InfoCollAlert userType={userType} />
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>NIW Petition</Typography>
       
       {/* User Path Selection */}
@@ -936,14 +936,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
         <Box sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Academic Core Contribution</Typography>
-            <Button
-              startIcon={<AddIcon />}
-              onClick={handleAddContribution}
-              variant="outlined"
-              size="small"
-            >
-              Add Contribution
-            </Button>
+            {userType === 'client' && (
+              <Button
+                startIcon={<AddIcon />}
+                onClick={handleAddContribution}
+                variant="outlined"
+                size="small"
+              >
+                Add Contribution
+              </Button>
+            )}
           </Box>
 
           {contributions.map((contribution, index) => (
@@ -953,26 +955,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                   <Typography>
                     {contribution.contributionTitle || `Contribution ${index + 1}`}
                   </Typography>
-                  <Box
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteContribution(index);
-                    }}
-                    sx={{
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 32,
-                      height: 32,
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        borderRadius: '50%'
-                      }
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </Box>
+                  {userType === 'client' && (
+                    <Box
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteContribution(index);
+                      }}
+                      sx={{
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 32,
+                        height: 32,
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          borderRadius: '50%'
+                        }
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </Box>
+                  )}
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
@@ -1014,14 +1018,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                       {contribution.fundingReceived === 'Yes' && (
                         <Box>
                           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                            <Button
-                              startIcon={<AddIcon />}
-                              onClick={() => handleAddFunding(index)}
-                              variant="outlined"
-                              size="small"
-                            >
-                              Add Funding
-                            </Button>
+                            {userType === 'client' && (
+                              <Button
+                                startIcon={<AddIcon />}
+                                onClick={() => handleAddFunding(index)}
+                                variant="outlined"
+                                size="small"
+                              >
+                                Add Funding
+                              </Button>
+                            )}
                           </Box>
 
                           {contribution.fundings?.map((funding, fundingIndex) => (
@@ -1031,26 +1037,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   <Typography>
                                     {funding.fundingCategory || `Funding ${fundingIndex + 1}`}
                                   </Typography>
-                                  <Box
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteFunding(index, fundingIndex);
-                                    }}
-                                    sx={{
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: 32,
-                                      height: 32,
-                                      '&:hover': {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                        borderRadius: '50%'
-                                      }
-                                    }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </Box>
+                                  {userType === 'client' && (
+                                    <Box
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteFunding(index, fundingIndex);
+                                      }}
+                                      sx={{
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 32,
+                                        height: 32,
+                                        '&:hover': {
+                                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                          borderRadius: '50%'
+                                        }
+                                      }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </Box>
+                                  )}
                                 </Box>
                               </AccordionSummary>
                               <AccordionDetails>
@@ -1089,6 +1097,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   onFileUrlChange={(url: string | null) => handleFundingChange(index, fundingIndex, 'fundingAttachments', url || '')}
                                   required={!funding.fundingLinks}
                                   error={errors[`contribution_${index}_funding_${fundingIndex}_attachments`]}
+                                  fileUrl={funding.fundingAttachments}
+                                  fileName={funding.fundingAttachments && extractFileName(funding.fundingAttachments)}
                                 />
 
                                 <TextField
@@ -1136,14 +1146,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                       {contribution.impact === 'Yes' && (
                         <Box>
                           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                            <Button
-                              startIcon={<AddIcon />}
-                              onClick={() => handleAddPolicyImpact(index)}
-                              variant="outlined"
-                              size="small"
-                            >
-                              Add Policy Impact
-                            </Button>
+                            {userType === 'client' && (
+                              <Button
+                                startIcon={<AddIcon />}
+                                onClick={() => handleAddPolicyImpact(index)}
+                                variant="outlined"
+                                size="small"
+                              >
+                                Add Policy Impact
+                              </Button>
+                            )}
                           </Box>
 
                           {contribution.policyImpacts?.map((impact, impactIndex) => (
@@ -1153,26 +1165,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   <Typography>
                                     {impact.impactField || `Policy Impact ${impactIndex + 1}`}
                                   </Typography>
-                                  <Box
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeletePolicyImpact(index, impactIndex);
-                                    }}
-                                    sx={{
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: 32,
-                                      height: 32,
-                                      '&:hover': {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                        borderRadius: '50%'
-                                      }
-                                    }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </Box>
+                                  {userType === 'client' && (
+                                    <Box
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeletePolicyImpact(index, impactIndex);
+                                      }}
+                                      sx={{
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 32,
+                                        height: 32,
+                                        '&:hover': {
+                                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                          borderRadius: '50%'
+                                        }
+                                      }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </Box>
+                                  )}
                                 </Box>
                               </AccordionSummary>
                               <AccordionDetails>
@@ -1223,6 +1237,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   onFileUrlChange={(url: string | null) => handlePolicyImpactChange(index, impactIndex, 'impactAttachments', url || '')}
                                   required={!impact.impactLinks}
                                   error={errors[`contribution_${index}_policyImpact_${impactIndex}_attachments`]}
+                                  fileUrl={impact.impactAttachments}
+                                  fileName={impact.impactAttachments && extractFileName(impact.impactAttachments)}
                                 />
 
                                 <TextField
@@ -1271,14 +1287,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                       {contribution.industryAdoption === 'Yes' && (
                         <Box>
                           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                            <Button
-                              startIcon={<AddIcon />}
-                              onClick={() => handleAddIndustryAdoption(index)}
-                              variant="outlined"
-                              size="small"
-                            >
-                              Add Industry Adoption
-                            </Button>
+                            {userType === 'client' && (
+                              <Button
+                                startIcon={<AddIcon />}
+                                onClick={() => handleAddIndustryAdoption(index)}
+                                variant="outlined"
+                                size="small"
+                              >
+                                Add Industry Adoption
+                              </Button>
+                            )}
                           </Box>
 
                           {contribution.industryAdoptions?.map((adoption, adoptionIndex) => (
@@ -1288,26 +1306,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   <Typography>
                                     {adoption.industryDocs || `Industry Adoption ${adoptionIndex + 1}`}
                                   </Typography>
-                                  <Box
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteIndustryAdoption(index, adoptionIndex);
-                                    }}
-                                    sx={{
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: 32,
-                                      height: 32,
-                                      '&:hover': {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                        borderRadius: '50%'
-                                      }
-                                    }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </Box>
+                                  {userType === 'client' && (
+                                    <Box
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteIndustryAdoption(index, adoptionIndex);
+                                      }}
+                                      sx={{
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 32,
+                                        height: 32,
+                                        '&:hover': {
+                                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                          borderRadius: '50%'
+                                        }
+                                      }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </Box>
+                                  )}
                                 </Box>
                               </AccordionSummary>
                               <AccordionDetails>
@@ -1346,6 +1366,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   onFileUrlChange={(url: string | null) => handleIndustryAdoptionChange(index, adoptionIndex, 'industryAttachments', url || '')}
                                   required={!adoption.industryLinks}
                                   error={errors[`contribution_${index}_industryAdoption_${adoptionIndex}_attachments`]}
+                                  fileUrl={adoption.industryAttachments}
+                                  fileName={adoption.industryAttachments && extractFileName(adoption.industryAttachments)}
                                 />
 
                                 <TextField
@@ -1393,14 +1415,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                       {contribution.publication === 'Yes' && (
                         <Box>
                           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                            <Button
-                              startIcon={<AddIcon />}
-                              onClick={() => handleAddPublication(index)}
-                              variant="outlined"
-                              size="small"
-                            >
-                              Add Publication
-                            </Button>
+                            {userType === 'client' && (
+                              <Button
+                                startIcon={<AddIcon />}
+                                onClick={() => handleAddPublication(index)}
+                                variant="outlined"
+                                size="small"
+                              >
+                                Add Publication
+                              </Button>
+                            )}
                           </Box>
 
                           {contribution.publications?.map((publication, publicationIndex) => (
@@ -1410,26 +1434,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   <Typography>
                                     {publication.pubTitle || `Publication ${publicationIndex + 1}`}
                                   </Typography>
-                                  <Box
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeletePublication(index, publicationIndex);
-                                    }}
-                                    sx={{
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: 32,
-                                      height: 32,
-                                      '&:hover': {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                        borderRadius: '50%'
-                                      }
-                                    }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </Box>
+                                  {userType === 'client' && (
+                                    <Box
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeletePublication(index, publicationIndex);
+                                      }}
+                                      sx={{
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 32,
+                                        height: 32,
+                                        '&:hover': {
+                                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                          borderRadius: '50%'
+                                        }
+                                      }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </Box>
+                                  )}
                                 </Box>
                               </AccordionSummary>
                               <AccordionDetails>
@@ -1539,6 +1565,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                   onFileUrlChange={(url: string | null) => handlePublicationChange(index, publicationIndex, 'pubAttachments', url || '')}
                                   required={!publication.pubLinks}
                                   error={errors[`contribution_${index}_publication_${publicationIndex}_attachments`]}
+                                  fileUrl={publication.pubAttachments}
+                                  fileName={publication.pubAttachments && extractFileName(publication.pubAttachments)}
                                 />
 
                                 <TextField
@@ -1570,14 +1598,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                     <AccordionDetails>
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                          <Button
-                            startIcon={<AddIcon />}
-                            onClick={() => handleAddSupplementalEvidence(index)}
-                            variant="outlined"
-                            size="small"
-                          >
-                            Add Evidence
-                          </Button>
+                          {userType === 'client' && (
+                            <Button
+                              startIcon={<AddIcon />}
+                              onClick={() => handleAddSupplementalEvidence(index)}
+                              variant="outlined"
+                              size="small"
+                            >
+                              Add Evidence
+                            </Button>
+                          )}
                         </Box>
 
                         {contribution.supplementalEvidences?.map((evidence, evidenceIndex) => (
@@ -1587,26 +1617,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 <Typography>
                                   {evidence.evidenceType || `Evidence ${evidenceIndex + 1}`}
                                 </Typography>
-                                <Box
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteSupplementalEvidence(index, evidenceIndex);
-                                  }}
-                                  sx={{
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: 32,
-                                    height: 32,
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                      borderRadius: '50%'
-                                    }
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </Box>
+                                {userType === 'client' && (
+                                  <Box
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteSupplementalEvidence(index, evidenceIndex);
+                                    }}
+                                    sx={{
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: 32,
+                                      height: 32,
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                        borderRadius: '50%'
+                                      }
+                                    }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </Box>
+                                )}
                               </Box>
                             </AccordionSummary>
                             <AccordionDetails>
@@ -1645,6 +1677,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 onFileUrlChange={(url: string | null) => handleSupplementalEvidenceChange(index, evidenceIndex, 'evidenceAttachment', url || '')}
                                 required={!evidence.evidenceLink}
                                 error={errors[`contribution_${index}_supplementalEvidence_${evidenceIndex}_attachments`]}
+                                fileUrl={evidence.evidenceAttachment}
+                                fileName={evidence.evidenceAttachment && extractFileName(evidence.evidenceAttachment)}
                               />
 
                               <TextField
@@ -1678,14 +1712,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
         <Box sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Industry Submission</Typography>
-            <Button
-              startIcon={<AddIcon />}
-              onClick={handleAddIndustryContribution}
-              variant="outlined"
-              size="small"
-            >
-              Add Contribution
-            </Button>
+            {userType === 'client' && (
+              <Button
+                startIcon={<AddIcon />}
+                onClick={handleAddIndustryContribution}
+                variant="outlined"
+                size="small"
+              >
+                Add Contribution
+              </Button>
+            )}
           </Box>
 
           {industryContributions.map((contribution, index) => (
@@ -1695,26 +1731,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                   <Typography>
                     {contribution.projectTitle || `Contribution ${index + 1}`}
                   </Typography>
-                  <Box
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteIndustryContribution(index);
-                    }}
-                    sx={{
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 32,
-                      height: 32,
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        borderRadius: '50%'
-                      }
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </Box>
+                  {userType === 'client' && (
+                    <Box
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteIndustryContribution(index);
+                      }}
+                      sx={{
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 32,
+                        height: 32,
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          borderRadius: '50%'
+                        }
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </Box>
+                  )}
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
@@ -1781,14 +1819,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                     <AccordionDetails>
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                          <Button
-                            startIcon={<AddIcon />}
-                            onClick={() => handleAddProjectEvidence(index)}
-                            variant="outlined"
-                            size="small"
-                          >
-                            Add Evidence
-                          </Button>
+                          {userType === 'client' && (
+                            <Button
+                              startIcon={<AddIcon />}
+                              onClick={() => handleAddProjectEvidence(index)}
+                              variant="outlined"
+                              size="small"
+                            >
+                              Add Evidence
+                            </Button>
+                          )}
                         </Box>
 
                         {contribution.projectEvidences?.map((evidence, evidenceIndex) => (
@@ -1798,26 +1838,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 <Typography>
                                   {evidence.evidenceType || `Evidence ${evidenceIndex + 1}`}
                                 </Typography>
-                                <Box
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteProjectEvidence(index, evidenceIndex);
-                                  }}
-                                  sx={{
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: 32,
-                                    height: 32,
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                      borderRadius: '50%'
-                                    }
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </Box>
+                                {userType === 'client' && (
+                                  <Box
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteProjectEvidence(index, evidenceIndex);
+                                    }}
+                                    sx={{
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: 32,
+                                      height: 32,
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                        borderRadius: '50%'
+                                      }
+                                    }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </Box>
+                                )}
                               </Box>
                             </AccordionSummary>
                             <AccordionDetails>
@@ -1856,6 +1898,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 onFileUrlChange={(url: string | null) => handleProjectEvidenceChange(index, evidenceIndex, 'evidenceAttachments', url || '')}
                                 required={!evidence.evidenceLinks}
                                 error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_attachments`]}
+                                fileUrl={evidence.evidenceAttachments}
+                                fileName={evidence.evidenceAttachments && extractFileName(evidence.evidenceAttachments)}
                               />
 
                               <TextField
@@ -1892,14 +1936,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                               {evidence.evidenceHasApplicantProof === 'Yes' && (
                                 <Box sx={{ mt: 2 }}>
                                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                                    <Button
-                                      startIcon={<AddIcon />}
-                                      onClick={() => handleAddApplicantProof(index, evidenceIndex)}
-                                      variant="outlined"
-                                      size="small"
-                                    >
-                                      Add Applicant Proof
-                                    </Button>
+                                    {userType === 'client' && (
+                                      <Button
+                                        startIcon={<AddIcon />}
+                                        onClick={() => handleAddApplicantProof(index, evidenceIndex)}
+                                        variant="outlined"
+                                        size="small"
+                                      >
+                                        Add Applicant Proof
+                                      </Button>
+                                    )}
                                   </Box>
 
                                   {evidence.applicantProofs?.map((proof, proofIndex) => (
@@ -1909,26 +1955,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                           <Typography>
                                             {proof.proofType || `Proof ${proofIndex + 1}`}
                                           </Typography>
-                                          <Box
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeleteApplicantProof(index, evidenceIndex, proofIndex);
-                                            }}
-                                            sx={{
-                                              cursor: 'pointer',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              width: 32,
-                                              height: 32,
-                                              '&:hover': {
-                                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                                borderRadius: '50%'
-                                              }
-                                            }}
-                                          >
-                                            <DeleteIcon fontSize="small" />
-                                          </Box>
+                                          {userType === 'client' && (
+                                            <Box
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteApplicantProof(index, evidenceIndex, proofIndex);
+                                              }}
+                                              sx={{
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: 32,
+                                                height: 32,
+                                                '&:hover': {
+                                                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                                  borderRadius: '50%'
+                                                }
+                                              }}
+                                            >
+                                              <DeleteIcon fontSize="small" />
+                                            </Box>
+                                          )}
                                         </Box>
                                       </AccordionSummary>
                                       <AccordionDetails>
@@ -1967,6 +2015,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                           onFileUrlChange={(url: string | null) => handleApplicantProofChange(index, evidenceIndex, proofIndex, 'proofFiles', url || '')}
                                           required={!proof.proofLinks}
                                           error={errors[`industry_contribution_${index}_evidence_${evidenceIndex}_applicantProof_${proofIndex}_files`]}
+                                          fileUrl={proof.proofFiles}
+                                          fileName={proof.proofFiles && extractFileName(proof.proofFiles)}
                                         />
 
                                         <TextField
@@ -2002,14 +2052,16 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                     <AccordionDetails>
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                          <Button
-                            startIcon={<AddIcon />}
-                            onClick={() => handleAddIndustrySupplementalEvidence(index)}
-                            variant="outlined"
-                            size="small"
-                          >
-                            Add Evidence
-                          </Button>
+                          {userType === 'client' && (
+                            <Button
+                              startIcon={<AddIcon />}
+                              onClick={() => handleAddIndustrySupplementalEvidence(index)}
+                              variant="outlined"
+                              size="small"
+                            >
+                              Add Evidence
+                            </Button>
+                          )}
                         </Box>
 
                         {contribution.supplementalEvidences?.map((evidence, evidenceIndex) => (
@@ -2019,26 +2071,28 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 <Typography>
                                   {evidence.evidenceType || `Evidence ${evidenceIndex + 1}`}
                                 </Typography>
-                                <Box
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteIndustrySupplementalEvidence(index, evidenceIndex);
-                                  }}
-                                  sx={{
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: 32,
-                                    height: 32,
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                      borderRadius: '50%'
-                                    }
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </Box>
+                                {userType === 'client' && (
+                                  <Box
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteIndustrySupplementalEvidence(index, evidenceIndex);
+                                    }}
+                                    sx={{
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: 32,
+                                      height: 32,
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                        borderRadius: '50%'
+                                      }
+                                    }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </Box>
+                                )}
                               </Box>
                             </AccordionSummary>
                             <AccordionDetails>
@@ -2077,6 +2131,8 @@ const InfoCollNiwPetition = forwardRef(({ clientCaseId }: { clientCaseId: number
                                 onFileUrlChange={(url: string | null) => handleIndustrySupplementalEvidenceChange(index, evidenceIndex, 'evidenceAttachment', url || '')}
                                 required={!evidence.evidenceLink}
                                 error={errors[`industry_contribution_${index}_supplementalEvidence_${evidenceIndex}_attachments`]}
+                                fileUrl={evidence.evidenceAttachment}
+                                fileName={evidence.evidenceAttachment && extractFileName(evidence.evidenceAttachment)}
                               />
 
                               <TextField

@@ -18,6 +18,7 @@ import Profile from './pages/Profile';
 import Service from './pages/Service';
 import SchedulePage from './pages/SchedulePage';
 import StaffManagementPage from './pages/StaffManagementPage';
+import Terms from './pages/Terms';
 
 const theme = createTheme({
   palette: {
@@ -56,6 +57,7 @@ const App: React.FC = () => {
           <Route path="/" element={<Home />} />
             <Route path="/landing" element={<LandingPage />} />
           <Route path="/about" element={<About />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/service" element={<Service />} />
           <Route path="/login" element={<Login />} />
           <Route path="/inquiry" element={<Inquiry />} />

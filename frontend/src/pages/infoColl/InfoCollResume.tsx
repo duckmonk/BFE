@@ -3,12 +3,13 @@ import { Box, Typography, TextField, Snackbar, Alert, Dialog, DialogTitle, Dialo
 import FileUploadButton from '../../components/FileUploadButton';
 import { infoCollApi } from '../../services/api';
 import { extractFileName } from '../../services/s3Service';
+import InfoCollAlert from '../../components/InfoCollAlert';
 
 interface FormErrors {
   [key: string]: boolean;
 }
 
-const InfoCollResume = forwardRef(({ clientCaseId, userId }: { clientCaseId: number, userId: string }, ref) => {
+const InfoCollResume = forwardRef(({ clientCaseId, userId, userType }: { clientCaseId: number, userId: string, userType: string }, ref) => {
   const [formData, setFormData] = useState<{ [key: string]: any }>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
@@ -81,9 +82,7 @@ const InfoCollResume = forwardRef(({ clientCaseId, userId }: { clientCaseId: num
 
   return (
     <Box>
-      <Alert severity="warning" sx={{ mb: 2 }}>
-        Reminder: If you do not click Save, your changes will be lost.
-      </Alert>
+      <InfoCollAlert userType={userType} />
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Resume</Typography>
 
       <Box component="form" noValidate autoComplete="off">

@@ -7,6 +7,7 @@ import { infoCollApi } from '../../services/api';
 import FileUploadButton from '../../components/FileUploadButton';
 import { extractFileName } from '../../services/s3Service';
 import { useNavigate } from 'react-router-dom';
+import InfoCollAlert from '../../components/InfoCollAlert';
 
 const refereeTypeOptions = ['Dependent', 'Independent'];
 const pronounOptions = ['He/Him', 'She/Her'];
@@ -41,7 +42,7 @@ interface RecommenderErrors {
   };
 }
 
-const InfoCollRecommender = forwardRef(({ clientCaseId }: { clientCaseId: number }, ref) => {
+const InfoCollRecommender = forwardRef(({ clientCaseId, userType }: { clientCaseId: number, userType: string }, ref) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<{ [key: string]: any }>({});
   const [recommenders, setRecommenders] = useState<Recommender[]>([]);
@@ -240,20 +241,20 @@ const InfoCollRecommender = forwardRef(({ clientCaseId }: { clientCaseId: number
 
   return (
     <Box component="form" noValidate autoComplete="off">
-      <Alert severity="warning" sx={{ mb: 2 }}>
-        Reminder: If you do not click Save, your changes will be lost.
-      </Alert>
+      <InfoCollAlert userType={userType} />
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recommender Information</Typography>
       
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        <Button
-          startIcon={<AddIcon />}
-          onClick={handleAddRecommender}
-          variant="outlined"
-          size="small"
-        >
-          Add Recommender
-        </Button>
+        {userType === 'client' && (
+          <Button
+            startIcon={<AddIcon />}
+            onClick={handleAddRecommender}
+            variant="outlined"
+            size="small"
+          >
+            Add Recommender
+          </Button>
+        )}
       </Box>
 
       {recommenders.map((recommender, index) => (
@@ -263,26 +264,28 @@ const InfoCollRecommender = forwardRef(({ clientCaseId }: { clientCaseId: number
               <Typography>
                 {recommender.name || `Recommender ${index + 1}`}
               </Typography>
-              <Box
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteRecommender(index);
-                }}
-                sx={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 32,
-                  height: 32,
-                  '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    borderRadius: '50%'
-                  }
-                }}
-              >
-                <DeleteIcon fontSize="small" />
-              </Box>
+              {userType === 'client' && (
+                <Box
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteRecommender(index);
+                  }}
+                  sx={{
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                      borderRadius: '50%'
+                    }
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </Box>
+              )}
             </Box>
           </AccordionSummary>
           <AccordionDetails>
@@ -552,18 +555,6 @@ const InfoCollRecommender = forwardRef(({ clientCaseId }: { clientCaseId: number
           onClose={handleCloseSnackbar} 
           severity={snackbar.severity} 
           sx={{ width: '100%' }}
-          action={
-            snackbar.severity === 'success' && (
-              <Button 
-                color="inherit" 
-                size="small" 
-                onClick={() => navigate('/landing')}
-                sx={{ ml: 2 }}
-              >
-                Back to Landing Page
-              </Button>
-            )
-          }
         >
           {snackbar.message}
         </Alert>

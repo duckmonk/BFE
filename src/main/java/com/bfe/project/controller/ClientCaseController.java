@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.bfe.project.entity.Inquiry;
+import com.bfe.project.service.InquiryService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,6 +45,9 @@ public class ClientCaseController {
 
     @Autowired
     private PdfMergeService pdfMergeService;
+
+    @Autowired
+    private InquiryService inquiryService;
 
     @GetMapping("/{id}")
     public Map<String, Object> getByCaseId(@PathVariable Integer id) {
@@ -75,6 +80,19 @@ public class ClientCaseController {
                 
         Map<String, Object> result = new HashMap<>();
         if (existingCase != null) {
+            // 查询该用户最新的 Inquiry
+            Inquiry latestInquiry = inquiryService.lambdaQuery()
+                .eq(Inquiry::getUserId, userId)
+                .orderByDesc(Inquiry::getCreateTimestamp)
+                .last("LIMIT 1")
+                .one();
+
+            // 如果 inquiry 存在且 caseStatusBfeInq 为 CLOSED，则视为 not_found
+            if (latestInquiry != null && "CLOSED".equalsIgnoreCase(latestInquiry.getCaseStatusBfeInq())) {
+                result.put("status", "not_found");
+                return result;
+            }
+
             result.put("status", "success");
             result.putAll(existingCase.toMap());
             result.put("tasksStatus", taskCenterController.getTasksStatus(existingCase.getId()));

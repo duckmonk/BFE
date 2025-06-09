@@ -4,6 +4,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { taskApi } from '../../services/api';
 import FileUploadButton from '../../components/FileUploadButton';
 import { getUserType } from '../../utils/user';
+import { extractFileName } from '../../services/s3Service';
 
 const changeOptions = [
   'Passport Information',
@@ -332,10 +333,13 @@ const TaskFinalQuestionnaire = forwardRef(({ clientCaseId, userId }: { clientCas
               <FileUploadButton
                 label="Please upload any relevant documents related to the updates in your other immigration applications"
                 fileType="immigrationDocuments"
-                onFileUrlChange={(url: string | null) => handleChange('immigrationDocuments', url || '')}
+                onUploadSuccess={(url) => setFormData(prev => ({ ...prev, immigrationDocuments: url }))}
+                onUploadError={(error) => setSnackbar({ open: true, message: error, severity: 'error' })}
+                onFileUrlChange={(url) => setFormData(prev => ({ ...prev, immigrationDocuments: url || '' }))}
+                accept=".pdf"
                 required
                 fileUrl={formData.immigrationDocuments}
-                fileName={formData.immigrationDocuments && formData.immigrationDocuments.split('/').pop()}
+                fileName={formData.immigrationDocuments && extractFileName(formData.immigrationDocuments)}
               />
             </AccordionDetails>
           </Accordion>

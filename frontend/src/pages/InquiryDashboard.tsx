@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Box, Button, Grid, TextField, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { useState, useEffect } from 'react';
+import { Typography, Box, Button, Grid, TextField, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { inquiryApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { userApi } from '../services/api';
@@ -193,8 +192,8 @@ export default function InquiryDashboard() {
         </Box>
         {/* 筛选区 */}
         <Grid container spacing={2} mb={2}>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <TextField 
                 fullWidth 
                 label="Date start" 
@@ -223,7 +222,8 @@ export default function InquiryDashboard() {
                   color: '#fff',
                   '&:hover': {
                     bgcolor: '#333'
-                  }
+                  },
+                  minWidth: '100px'
                 }}
               >
                 Apply

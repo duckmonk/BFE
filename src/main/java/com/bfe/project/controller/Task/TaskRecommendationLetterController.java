@@ -64,10 +64,10 @@ public class TaskRecommendationLetterController {
             letterInfo.put("clientCaseId", letter.getClientCaseId());
             letterInfo.put("refereeName", refereeName);
             letterInfo.put("refereeId", refereeId);
-            letterInfo.put("recommendationLetter", letter.getRlDraft());
-            letterInfo.put("feedback", letter.getRlOverallFeedback());
-            letterInfo.put("confirm", letter.getRlConfirm());
-            letterInfo.put("signedLetter", letter.getRlSignedLetter());
+            letterInfo.put("rlDraft", letter.getRlDraft());
+            letterInfo.put("rlOverallFeedback", letter.getRlOverallFeedback());
+            letterInfo.put("rlConfirm", letter.getRlConfirm());
+            letterInfo.put("rlSignedLetter", letter.getRlSignedLetter());
             result.add(letterInfo);
         }
 

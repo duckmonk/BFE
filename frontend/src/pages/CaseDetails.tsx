@@ -18,7 +18,7 @@ import TaskRecommendationLetters from './tasks/TaskRecommendationLetters';
 import TaskWellPositioned from './tasks/TaskWellPositioned';
 import TaskBalancingFactors from './tasks/TaskBalancingFactors';
 import TaskFinalQuestionnaire from './tasks/TaskFinalQuestionnaire';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import PLFormatting from './tasks/PLFormatting';
 import { getEnabledTasks } from '../utils/taskUtils';
 import ImmigrationForms from './tasks/ImmigrationForms';
@@ -44,6 +44,10 @@ const CaseDetails: React.FC = () => {
   const userType = getUserType();
   const { clientCaseId } = useParams<{ clientCaseId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [currentSection, setCurrentSection] = useState<string>('');
+  const [currentChild, setCurrentChild] = useState<string>('');
+  const [showJumpToLanding, setShowJumpToLanding] = useState(false);
+  const navigate = useNavigate();
 
   // 根据用户类型定义sections
   const sections = useMemo(() => (
@@ -176,6 +180,8 @@ const CaseDetails: React.FC = () => {
         const tasksResponse = await clientCaseApi.getTasksStatus(clientCase.clientCaseId);
         setTasksStatus(tasksResponse.data);
       }
+      // 调用 handleAfterSave
+      handleAfterSave();
     }
   };
 
@@ -194,6 +200,36 @@ const CaseDetails: React.FC = () => {
     const taskKey = Object.entries(taskMapping).find(([_, label]) => label === normalizedLabel)?.[0];
     // 使用本地计算的 enabledTasks 集合来判断
     return taskKey ? enabledTasks.has(taskKey) : false;
+  };
+
+  // 获取当前页面的索引
+  const getCurrentPageIndex = () => {
+    const section = sections[selected.section];
+    if (!section) return -1;
+    return selected.child;
+  };
+
+  // 检查是否是最后一个页面
+  const isLastPage = () => {
+    const currentIndex = getCurrentPageIndex();
+    if (currentIndex === -1) return false;
+    
+    const section = sections[selected.section];
+    if (!section) return false;
+    
+    return currentIndex === section.children.length - 1;
+  };
+
+  // 处理保存后的回调
+  const handleAfterSave = () => {
+    if (isLastPage()) {
+      setShowJumpToLanding(true);
+    }
+  };
+
+  // 跳转到 landing page
+  const handleJumpToLanding = () => {
+    navigate('/landing');
   };
 
   return (
@@ -240,6 +276,9 @@ const CaseDetails: React.FC = () => {
                                 setSelected({ section: sIdx, child: cIdx });
                                 // 更新 URL 参数以保存当前 tab 信息
                                 setSearchParams({ section: sIdx.toString(), child: cIdx.toString() });
+                                // 设置当前 section 和 child
+                                setCurrentSection(section.title);
+                                setCurrentChild(child.label);
                               }
                             }}
                           >
@@ -288,22 +327,33 @@ const CaseDetails: React.FC = () => {
           </Grid>
           {/* 右侧表单区 */}
           <Grid size={{ xs: 12, md: 8 }}>
-            <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: 4, border: '1px solid #e0e6ef', minHeight: 500, position: 'relative', pb: 12 }}>
+            <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: 4, border: '1px solid #e0e6ef', minHeight: 500, position: 'relative', pb: 2 }}>
               {/* 动态渲染表单并传递ref */}
               {CurrentForm && clientCase && (
                 React.createElement(CurrentForm as any, { 
                   ref: formRef, 
                   clientCaseId: clientCase.clientCaseId,
                   userId: clientCase.userId,
+                  userType: userType,
                   immigrationForms: clientCase.immigrationForms || null
                 })
               )}
+            </Box>
+            <Box sx={{ mt: 2, mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
               {shouldShowSaveButton() && (
-                <Box sx={{ position: 'absolute', right: 32, bottom: 64 }}>
-                  <Button variant="contained" color="primary" sx={{ px: 5, py: 1.2, fontWeight: 700 }} onClick={handleSave}>
-                    Save
-                  </Button>
-                </Box>
+                <Button variant="contained" color="primary" sx={{ px: 5, py: 1.2, fontWeight: 700 }} onClick={handleSave}>
+                  Save
+                </Button>
+              )}
+              {showJumpToLanding && (
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={handleJumpToLanding}
+                  sx={{ px: 5, py: 1.2, fontWeight: 700 }}
+                >
+                  Return to Dashboard
+                </Button>
               )}
             </Box>
           </Grid>

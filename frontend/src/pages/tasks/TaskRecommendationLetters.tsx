@@ -3,6 +3,7 @@ import { Box, Typography, Accordion, AccordionSummary, AccordionDetails } from '
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { taskApi } from '../../services/api';
 import TaskForm from '../../components/TaskForm';
+import { AxiosResponse } from 'axios';
 
 interface RecommendationLetter {
   id?: number;
@@ -22,16 +23,7 @@ const TaskRecommendationLetters = ({ clientCaseId }: { clientCaseId: number }) =
     if (clientCaseId) {
       taskApi.getRecommendationLetters(clientCaseId).then(res => {
         if (res && res.data) {
-          setLetters(res.data.map((letter: any) => ({
-            id: letter.id,
-            refereeId: letter.refereeId,
-            clientCaseId: letter.clientCaseId,
-            refereeName: letter.refereeName,
-            rlDraft: letter.recommendationLetter || '',
-            rlOverallFeedback: letter.feedback || '',
-            rlConfirm: letter.confirm || '',
-            rlSignedLetter: letter.signedLetter || ''
-          })));
+          setLetters(res.data);
         }
       }).catch(() => {
         // 可以加错误提示
@@ -42,6 +34,14 @@ const TaskRecommendationLetters = ({ clientCaseId }: { clientCaseId: number }) =
   // 检查是否所有之前的推荐信都Approved
   const canEditLetter = (index: number) => {
     return letters.slice(0, index).every(letter => letter.rlConfirm === 'YES');
+  };
+
+  const handleSubmit = async (data: RecommendationLetter, index: number) => {
+    const updatedLetters = letters.map((l, i) => 
+      i === index ? { ...l, ...data } : l
+    );
+    
+    return taskApi.submitRecommendationLetters(updatedLetters);
   };
 
   return (
@@ -74,13 +74,20 @@ const TaskRecommendationLetters = ({ clientCaseId }: { clientCaseId: number }) =
               feedbackField="rlOverallFeedback"
               confirmationField="rlConfirm"
               uploadField="rlSignedLetter"
-              onSubmit={async (data) => {
-                const updatedLetters = letters.map((l, i) => 
-                  i === index ? { ...l, ...data } : l
-                );
-                return taskApi.submitRecommendationLetters(updatedLetters);
+              onSubmit={(data) => handleSubmit(data, index)}
+              onFetch={async (id) => {
+                const res = await taskApi.getRecommendationLetters(id);
+                if (res && res.data) {
+                  const currentLetter = res.data.find((l: RecommendationLetter) => l.refereeName === letter.refereeName);
+                  if (currentLetter) {
+                    return {
+                      ...res,
+                      data: currentLetter
+                    } as AxiosResponse;
+                  }
+                }
+                return res;
               }}
-              onFetch={taskApi.getRecommendationLetters}
             />
           </AccordionDetails>
         </Accordion>

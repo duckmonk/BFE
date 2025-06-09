@@ -138,11 +138,45 @@ const InquiryDetailsModal: React.FC<InquiryDetailsModalProps> = ({
     }
   };
 
-  const handleCopyCalendarUrl = () => {
+  const handleCopyCalendar = () => {
     const calendarUrl = `${window.location.origin}/schedule?inquiryId=${formData.id}`;
-    navigator.clipboard.writeText(calendarUrl).then(() => {
+    if (navigator.clipboard && window.isSecureContext) {
+      // 在安全上下文中使用 Clipboard API
+      navigator.clipboard.writeText(calendarUrl)
+        .then(() => {
+          setShowCopiedAlert(true);
+        })
+        .catch(() => {
+          // 如果 Clipboard API 失败，使用后备方案
+          fallbackCopyToClipboard(calendarUrl);
+        });
+    } else {
+      // 在不支持 Clipboard API 的环境中使用后备方案
+      fallbackCopyToClipboard(calendarUrl);
+    }
+  };
+
+  // 后备复制方案
+  const fallbackCopyToClipboard = (text: string) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    // 避免滚动到页面底部
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    
+    try {
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
       setShowCopiedAlert(true);
-    });
+    } catch (err) {
+      console.error('Copy error:', err);
+    } finally {
+      document.body.removeChild(textArea);
+    }
   };
 
   const formatTimestamp = (timestamp: number) => {
@@ -227,7 +261,7 @@ const InquiryDetailsModal: React.FC<InquiryDetailsModalProps> = ({
               ) : (
                 <Button
                   variant="contained"
-                  onClick={handleCopyCalendarUrl}
+                  onClick={handleCopyCalendar}
                   fullWidth
                   disabled={isFieldDisabled('sendOutCalendarDateInq', user?.userType)}
                 >

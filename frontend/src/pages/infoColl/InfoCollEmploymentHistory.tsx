@@ -3,6 +3,7 @@ import { Box, Typography, TextField, MenuItem, Snackbar, Alert, Button, Dialog, 
 import FileUploadButton from '../../components/FileUploadButton';
 import { infoCollApi } from '../../services/api';
 import { extractFileName } from '../../services/s3Service';
+import InfoCollAlert from '../../components/InfoCollAlert';
 
 const yesNoOptions = ['Yes', 'No'];
 
@@ -31,7 +32,7 @@ interface EmploymentHistoryErrors {
   };
 }
 
-const InfoCollEmploymentHistory = forwardRef(({ clientCaseId, userId }: { clientCaseId: number, userId: string }, ref) => {
+const InfoCollEmploymentHistory = forwardRef(({ clientCaseId, userId, userType }: { clientCaseId: number, userId: string, userType: string }, ref) => {
   const [employmentHistories, setEmploymentHistories] = useState<EmploymentHistory[]>([]);
   const [errors, setErrors] = useState<EmploymentHistoryErrors>({});
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
@@ -203,23 +204,23 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId, userId }: { client
 
   return (
     <Box>
-      <Alert severity="warning" sx={{ mb: 2 }}>
-        Reminder: If you do not click Save, your changes will be lost.
-      </Alert>
+      <InfoCollAlert userType={userType} />
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Employment History</Typography>
 
       {employmentHistories.map((history, index) => (
         <Box key={index} component="form" noValidate autoComplete="off" sx={{ mb: 4, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="subtitle1" fontWeight={600}>Employment History {index + 1}</Typography>
-            <Button
-              variant="outlined"
-              color="error"
-              size="small"
-              onClick={() => handleDelete(index)}
-            >
-              Delete
-            </Button>
+            {userType === 'client' && (
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={() => handleDelete(index)}
+              >
+                Delete
+              </Button>
+            )}
           </Box>
 
           <TextField 
@@ -406,13 +407,15 @@ const InfoCollEmploymentHistory = forwardRef(({ clientCaseId, userId }: { client
         </Box>
       ))}
 
-      <Button
-        variant="contained"
-        onClick={handleAdd}
-        sx={{ mb: 2 }}
-      >
-        Add Employment History
-      </Button>
+      {userType === 'client' && (
+        <Button
+          variant="contained"
+          onClick={handleAdd}
+          sx={{ mb: 2 }}
+        >
+          Add Employment History
+        </Button>
+      )}
 
       <Snackbar
         open={snackbar.open}

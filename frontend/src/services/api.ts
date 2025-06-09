@@ -333,7 +333,7 @@ export const userApi = {
   resetPassword: async (oldPassword: string, newPassword: string) => {
     return api.post('/user/resetPassword', { oldPassword, newPassword });
   },
-  createUser: (data: { userType: string; name: string; password: string; email: string }) => api.post('/user/create', data),
+  createUser: (data: { userType: string; name: string; password: string; email: string; firmName: string }) => api.post('/user/create', data),
   getUsersList: () => api.get('/user/list'),
   getLawyers: () => api.get('/user/lawyers'),
   getEmployees: () => api.get('/user/employees'),

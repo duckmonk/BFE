@@ -32,11 +32,13 @@ export default function CaseDetailDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user || !['marketing_manager', 'admin'].includes(user.userType)) {
-      navigate('/login');
-      return;
+    if (user) {
+      if (!['marketing_manager', 'admin'].includes(user.userType)) {
+        navigate('/login');
+        return;
+      }
+      fetchCases();
     }
-    fetchCases();
   }, [user]);
 
   const fetchCases = async () => {
@@ -95,8 +97,8 @@ export default function CaseDetailDashboard() {
 
         {/* 筛选区 */}
         <Grid container spacing={2} mb={2}>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <TextField 
                 fullWidth 
                 label="Date start" 
@@ -125,7 +127,8 @@ export default function CaseDetailDashboard() {
                   color: '#fff',
                   '&:hover': {
                     bgcolor: '#333'
-                  }
+                  },
+                  minWidth: '100px'
                 }}
               >
                 Apply

@@ -17,6 +17,7 @@ interface FileUploadButtonProps {
   fileUrl?: string | null;
   fileName?: string | null;
   error?: boolean;
+  disableDelete?: boolean;
 }
 
 const FileUploadButton: React.FC<FileUploadButtonProps> = ({
@@ -31,6 +32,7 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   fileUrl: propFileUrl,
   fileName: propFileName,
   error = false,
+  disableDelete = false,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | null>(propFileUrl || null);
@@ -174,13 +176,15 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
           >
             <DownloadIcon fontSize="small" />
           </IconButton>
-          <IconButton 
-            size="small" 
-            onClick={handleDelete}
-            sx={{ ml: 1 }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+          {!disableDelete && (
+            <IconButton 
+              size="small" 
+              onClick={handleDelete}
+              sx={{ ml: 1 }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          )}
         </Box>
       )}
 

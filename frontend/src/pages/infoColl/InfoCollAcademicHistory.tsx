@@ -4,6 +4,7 @@ import FileUploadButton from '../../components/FileUploadButton';
 import { infoCollApi } from '../../services/api';
 import { extractFileName } from '../../services/s3Service';
 import { countryOptions } from '../../constants/countries';
+import InfoCollAlert from '../../components/InfoCollAlert';
 
 const degreeOptions = ['Bachelor\'s', 'Master\'s', 'Doctorate', 'Other'];
 const statusOptions = ['Completed', 'Ongoing', 'Other'];
@@ -32,7 +33,7 @@ interface AcademicHistoryErrors {
   };
 }
 
-const InfoCollAcademicHistory = forwardRef(({ clientCaseId, userId }: { clientCaseId: number, userId: string }, ref) => {
+const InfoCollAcademicHistory = forwardRef(({ clientCaseId, userId, userType }: { clientCaseId: number, userId: string, userType: string }, ref) => {
   const [academicHistories, setAcademicHistories] = useState<AcademicHistory[]>([]);
   const [errors, setErrors] = useState<AcademicHistoryErrors>({});
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
@@ -235,23 +236,23 @@ const InfoCollAcademicHistory = forwardRef(({ clientCaseId, userId }: { clientCa
 
   return (
     <Box>
-      <Alert severity="warning" sx={{ mb: 2 }}>
-        Reminder: If you do not click Save, your changes will be lost.
-      </Alert>
+      <InfoCollAlert userType={userType} />
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Academic History</Typography>
 
       {academicHistories.map((history, index) => (
         <Box key={index} component="form" noValidate autoComplete="off" sx={{ mb: 4, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="subtitle1" fontWeight={600}>Academic History {index + 1}</Typography>
-            <Button
-              variant="outlined"
-              color="error"
-              size="small"
-              onClick={() => handleDelete(index)}
-            >
-              Delete
-            </Button>
+            {userType === 'client' && (
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={() => handleDelete(index)}
+              >
+                Delete
+              </Button>
+            )}
           </Box>
 
           <TextField 
@@ -429,13 +430,15 @@ const InfoCollAcademicHistory = forwardRef(({ clientCaseId, userId }: { clientCa
         </Box>
       ))}
 
-      <Button
-        variant="contained"
-        onClick={handleAddHistory}
-        sx={{ mb: 2 }}
-      >
-        Add Academic History
-      </Button>
+      {userType === 'client' && (
+        <Button
+          variant="contained"
+          onClick={handleAddHistory}
+          sx={{ mb: 2 }}
+        >
+          Add Academic History
+        </Button>
+      )}
 
       <Snackbar
         open={snackbar.open}

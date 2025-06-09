@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Container, Typography, Box, TextField, Button, Grid, MenuItem, Alert, Snackbar } from '@mui/material';
-import SampleCase from '../components/SampleCase';
 import { inquiryApi } from '../services/api';
 
 // 定义表单数据接口
@@ -39,27 +38,6 @@ interface InquiryFormData {
   message: string;
 }
 
-const placeholderImg = 'https://source.unsplash.com/400x300/?fruit,peach';
-const placeholderImg2 = 'https://source.unsplash.com/400x300/?drink,glass';
-const placeholderImg3 = 'https://source.unsplash.com/400x300/?vegetable';
-
-const sampleCases = [
-  {
-    title: 'Academic',
-    author: 'Author',
-    image: placeholderImg3
-  },
-  {
-    title: 'half - half',
-    author: 'Author',
-    image: placeholderImg
-  },
-  {
-    title: 'Industry',
-    author: 'Author',
-    image: placeholderImg2
-  }
-];
 
 const socialPlatforms = [
   "LinkedIn",
@@ -185,21 +163,13 @@ const Inquiry: React.FC = () => {
               </Box>
             </Grid>
           </Grid>
-
-          {/* Sample Cases 区 */}
-          <Box sx={{ mt: 8 }}>
-            <SampleCase 
-              title="Sample Cases" 
-              cases={sampleCases} 
-            />
-          </Box>
         </Container>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ bgcolor: '#f3f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Container maxWidth="lg" sx={{ pt: 6, pb: 6, flex: 1 }}>
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 7 }}>
@@ -511,30 +481,7 @@ const Inquiry: React.FC = () => {
               </Button>
             </Box>
           </Grid>
-
-          <Grid size={{ xs: 12, md: 5 }}>
-            <Box sx={{ position: 'sticky', top: 24 }}>
-              <img
-                src="https://source.unsplash.com/800x1000/?fruit,peach"
-                alt="decorative"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  borderRadius: '16px',
-                  marginTop: '40px'
-                }}
-              />
-            </Box>
-          </Grid>
         </Grid>
-
-        {/* Sample Cases 区 */}
-        <Box sx={{ mt: 8 }}>
-          <SampleCase 
-            title="Sample Cases" 
-            cases={sampleCases} 
-          />
-        </Box>
       </Container>
       <Snackbar 
         open={snackbar.open} 

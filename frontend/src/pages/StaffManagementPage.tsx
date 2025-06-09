@@ -7,6 +7,7 @@ export default function StaffManagementPage() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [firmName, setFirmName] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [staffUsers, setStaffUsers] = useState<any[]>([]);
@@ -17,13 +18,14 @@ export default function StaffManagementPage() {
     try {
       setSuccessMessage(null);
       setErrorMessage(null);
-      const response = await userApi.createUser({ userType, name, password, email });
+      const response = await userApi.createUser({ userType, name, password, email, firmName });
       if (response.status === 200) {
         setSuccessMessage('Staff created successfully!');
         setUserType('');
         setName('');
         setPassword('');
         setEmail('');
+        setFirmName('');
         fetchStaffUsers();
       } else {
         setErrorMessage(response.data?.message || 'Failed to create staff.');
@@ -107,6 +109,14 @@ export default function StaffManagementPage() {
               }}
             />
           </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Firm Name"
+              value={firmName}
+              onChange={(e) => setFirmName(e.target.value)}
+            />
+          </Grid>
           <Grid size={{ xs: 12 }}>
             <Button
               variant="contained"
@@ -139,6 +149,7 @@ export default function StaffManagementPage() {
                   <TableCell sx={{ fontWeight: 'bold' }}>User Type</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Firm Name</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -147,6 +158,7 @@ export default function StaffManagementPage() {
                     <TableCell>{user.userType}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.firmName}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

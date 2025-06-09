@@ -4,6 +4,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { getUserType } from '../utils/user';
 import FileUploadButton from './FileUploadButton';
 import { AxiosResponse } from 'axios';
+import { extractFileName } from '../services/s3Service';
 
 interface TaskFormProps {
   title: string;
@@ -73,7 +74,40 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   const handleCopy = () => {
     if (formData[feedbackField]) {
-      navigator.clipboard.writeText(formData[feedbackField] || '');
+      const textToCopy = formData[feedbackField] || '';
+      if (navigator.clipboard && window.isSecureContext) {
+        // 在安全上下文中使用 Clipboard API
+        navigator.clipboard.writeText(textToCopy)
+          .catch(() => {
+            // 如果 Clipboard API 失败，使用后备方案
+            fallbackCopyToClipboard(textToCopy);
+          });
+      } else {
+        // 在不支持 Clipboard API 的环境中使用后备方案
+        fallbackCopyToClipboard(textToCopy);
+      }
+    }
+  };
+
+  // 后备复制方案
+  const fallbackCopyToClipboard = (text: string) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    // 避免滚动到页面底部
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    
+    try {
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+    } catch (err) {
+      console.error('Copy error:', err);
+    } finally {
+      document.body.removeChild(textArea);
     }
   };
 
@@ -89,8 +123,10 @@ const TaskForm: React.FC<TaskFormProps> = ({
             label="Upload Draft (PDF)"
             fileType={draftField}
             fileUrl={formData[draftField] || ''}
+            fileName={formData[draftField] && extractFileName(formData[draftField])}
             onFileUrlChange={url => setFormData(prev => ({ ...prev, [draftField]: url }))}
             required
+            disableDelete={formData[confirmationField] === 'YES'}
           />
         ) : (
           <TextField
@@ -154,8 +190,9 @@ const TaskForm: React.FC<TaskFormProps> = ({
             accept=".pdf"
             required
             fileUrl={formData[uploadField]}
-            fileName={formData[uploadField] ? formData[uploadField].split('/').pop() : ''}
+            fileName={formData[uploadField] && extractFileName(formData[uploadField])}
             disabled={userType !== 'client'}
+            disableDelete={formData[confirmationField] === 'YES'}
           />
         </>
       )}
