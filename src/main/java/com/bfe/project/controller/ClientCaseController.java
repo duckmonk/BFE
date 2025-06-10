@@ -20,10 +20,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.bfe.project.entity.Inquiry;
 import com.bfe.project.service.InquiryService;
-
-import java.util.*;
-import java.util.stream.Collectors;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.io.IOException;
+import java.util.stream.Collectors;
+import java.util.*;
+import com.bfe.project.entity.InfoColl.InfoCollBasicInfo;
+import com.bfe.project.service.InfoColl.InfoCollBasicInfoService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/client-case")
@@ -48,6 +53,9 @@ public class ClientCaseController {
 
     @Autowired
     private InquiryService inquiryService;
+
+    @Autowired
+    private InfoCollBasicInfoService infoCollBasicInfoService;
 
     @GetMapping("/{id}")
     public Map<String, Object> getByCaseId(@PathVariable Integer id) {
@@ -107,13 +115,26 @@ public class ClientCaseController {
     public Map<String, Object> createCase() {
         // 获取当前登录用户ID
         Integer userId = StpUtil.getLoginIdAsInt();
-        
+
+        // 读取 seed.tex 内容
+        String seedLatex = "";
+        try {
+            seedLatex = new String(Files.readAllBytes(Paths.get("./resources/latex/seed.tex")));
+            System.out.println("seedLatex");
+            System.out.println(seedLatex);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("seedLatex error");
+            System.out.println(e.getMessage());
+        }
+
         // 创建新的case
         ClientCase newCase = new ClientCase();
         newCase.setUserId(userId);
         newCase.setCreateTimestamp(System.currentTimeMillis() / 1000);
+        newCase.setPlFormatting(seedLatex); // 设置初始latex内容
         clientCaseService.save(newCase);
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("status", "success");
         result.put("clientCaseId", newCase.getId());
@@ -205,49 +226,131 @@ public class ClientCaseController {
         return result;
     }
 
-    // 组装 LaTeX 文档的公共方法
-    private String assembleLatexDocument(List<String> textList) {
-        return String.format("\\documentclass{article}\n" +
-                "\\usepackage{geometry}\n" +
-                "\\geometry{a4paper,margin=1in}\n" +
-                "\\begin{document}\n" +
-                "%s\n" +
-                "\\end{document}",
-                String.join("\\par\n", textList.stream()
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .collect(Collectors.toList())));
-    }
-
-    @PostMapping("/save-and-preview-latex")
-    public ResponseEntity<byte[]> saveAndPreviewLatex(@RequestParam Integer caseId, @RequestBody List<String> textList) {
+    @PostMapping(value = "/save-and-preview-latex", consumes = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<byte[]> saveAndPreviewLatex(
+            @RequestParam Integer caseId,
+            @RequestParam String typeOfPetition,
+            @RequestBody String latexContent) throws JsonProcessingException {
         try {
-            // 1. 根据 caseId 查找 ClientCase 实体
+            // 1. 查找 ClientCase
             ClientCase clientCase = clientCaseService.getById(caseId);
             if (clientCase == null) {
-                return ResponseEntity.badRequest().body(("Case with ID " + caseId + " not found.").getBytes());
+                Map<String, Object> errorBody = new HashMap<>();
+                errorBody.put("status", "error");
+                errorBody.put("message", "Case with ID " + caseId + " not found.");
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
             }
 
-            // 2. 保存文本列表到 pl_formatting 字段
-            clientCase.setPlFormatting(String.join("\\par", textList));
+            // 2. 获取basic info中的full name
+            InfoCollBasicInfo basicInfo = infoCollBasicInfoService.lambdaQuery()
+                    .eq(InfoCollBasicInfo::getClientCaseId, caseId)
+                    .one();
+            if (basicInfo == null || basicInfo.getFullName() == null || basicInfo.getFullName().trim().isEmpty()) {
+                Map<String, Object> errorBody = new HashMap<>();
+                errorBody.put("status", "error");
+                errorBody.put("message", "Basic info not found or full name is empty.");
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
+            }
+
+            // 3. 获取律师信息
+            Inquiry inquiry = inquiryService.lambdaQuery()
+                    .eq(Inquiry::getUserId, clientCase.getUserId())
+                    .orderByDesc(Inquiry::getCreateTimestamp)
+                    .last("LIMIT 1")
+                    .one();
+            if (inquiry == null || inquiry.getBfeSendOutAttorneyInq() == null) {
+                Map<String, Object> errorBody = new HashMap<>();
+                errorBody.put("status", "error");
+                errorBody.put("message", "Attorney info not found.");
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
+            }
+
+            User attorney = userService.getById(inquiry.getBfeSendOutAttorneyInq());
+            if (attorney == null) {
+                Map<String, Object> errorBody = new HashMap<>();
+                errorBody.put("status", "error");
+                errorBody.put("message", "Attorney not found.");
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
+            }
+
+            String clsContent = new String(Files.readAllBytes(Paths.get("./resources/latex/pl_template.cls")));
+            clsContent = clsContent.replace("REPLACE-PETITIONER-NAME", basicInfo.getFullName());
+            clsContent = clsContent.replace("REPLACE-TYPE-OF-PETITION", typeOfPetition);
+            clsContent = clsContent.replace("REPLACE-HE-SHE-LOW", basicInfo.getGender().equals("Male") ? "He" : "She");
+            clsContent = clsContent.replace("REPLACE-HE-SHE-UP", basicInfo.getGender().equals("Male") ? "He" : "She");
+            clsContent = clsContent.replace("REPLACE-HIS-HER-LOW", basicInfo.getGender().equals("Male") ? "His" : "Her");
+            clsContent = clsContent.replace("REPLACE-MR-MS", basicInfo.getGender().equals("Male") ? "Mr." : "Ms.");
+            clsContent = clsContent.replace("REPLACE-ATTORNEY-NAME", attorney.getName());
+            clsContent = clsContent.replace("REPLACE-ATTORNEY-EMAIL", attorney.getEmail());
+            clsContent = clsContent.replace("REPLACE-LAW-FIRM-NAME", attorney.getFirmName());
+
+            // 设置律所地址信息
+            String firmAddress = "";
+            String firmPhone = "";
+            String firmEmail = "";
+            String firmWebsite = "";
+
+            if ("Besting Law, APC".equals(attorney.getFirmName())) {
+                firmAddress = "1625 The Alam da, Suite 202, San Jose, CA 95126";
+                firmPhone = "(408)-763-4949";
+                firmEmail = "info@bestinglaw.com";
+                firmWebsite = "bestinglaw.com";
+            } else if ("YC LAW GROUP, PC".equals(attorney.getFirmName())) {
+                firmAddress = "2880 Zanker Road, #203, San Jose, CA 95134";
+                firmPhone = "(408) 614-7199";
+                firmEmail = "info@yclawgroup.com";
+                firmWebsite = "yclawgroup.com";
+            } else {
+                firmAddress = "mock address";
+                firmPhone = "mock phone";
+                firmEmail = "mock email";
+                firmWebsite = "mock website";
+            }
+
+            clsContent = clsContent.replace("REPLACE-LAW-FIRM-ADDRESS", firmAddress);
+            clsContent = clsContent.replace("REPLACE-LAW-FIRM-PHONE", firmPhone);
+            clsContent = clsContent.replace("REPLACE-LAW-FIRM-EMAIL", firmEmail);
+            clsContent = clsContent.replace("REPLACE-LAW-FIRM-WEBSITE", firmWebsite);
+
+            // 保存
+            clientCase.setPlFormattingCls(clsContent);
+            clientCase.setTypeOfPetition(typeOfPetition);
+            // 如果 latexContent 为空，则使用 seed.tex 内容
+            if (latexContent == null || latexContent.trim().isEmpty()) {
+                latexContent = new String(Files.readAllBytes(Paths.get("./resources/latex/seed.tex")));
+            }
+            clientCase.setPlFormatting(latexContent);
             clientCaseService.updateById(clientCase);
 
-            // 3. 组装 LaTeX 文档用于生成 PDF
-            String latexContent = assembleLatexDocument(textList);
+            // 生成 PDF
+            byte[] pdfBytes = latexService.convertLatexToPdf(latexContent, clsContent);
 
-            // 4. 调用 LaTeXService 生成 PDF
-            byte[] pdfBytes = latexService.convertLatexToPdf(latexContent);
-
-            // 5. 返回 PDF 内容
             return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header("Content-Disposition", "attachment; filename=\"document.pdf\"")
                 .body(pdfBytes);
 
-        } catch (IOException | InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                .body(("Server error during save and preview: " + e.getMessage()).getBytes());
+            String errorMessage = e.getMessage();
+            if (errorMessage == null || errorMessage.trim().isEmpty()) {
+                errorMessage = "An unexpected error occurred during PDF generation.";
+            }
+            Map<String, Object> errorBody = new HashMap<>();
+            errorBody.put("status", "error");
+            errorBody.put("message", errorMessage);
+            System.out.println("errorBody");
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new ObjectMapper().writeValueAsBytes(errorBody));
         }
     }
 
@@ -261,26 +364,27 @@ public class ClientCaseController {
                 return ResponseEntity.notFound().build();
             }
 
-            // 获取PL Formatting内容
-            String plFormatting = clientCase.getPlFormatting();
-            if (plFormatting == null || plFormatting.trim().isEmpty()) {
-                return ResponseEntity.badRequest().build();
+            // 直接用数据库中已保存的内容
+            String latexContent = clientCase.getPlFormatting();
+            String clsContent = clientCase.getPlFormattingCls();
+
+            if (latexContent == null || latexContent.trim().isEmpty() ||
+                clsContent == null || clsContent.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("PL Formatting or class file is empty.".getBytes());
             }
 
-            // 将存储的文本列表转换回数组
-            List<String> textList = Arrays.asList(plFormatting.split("\\\\par"));
-            
-            // 组装 LaTeX 文档
-            String latexContent = assembleLatexDocument(textList);
+            // 生成主PDF
+            byte[] mainPdf = latexService.convertLatexToPdf(latexContent, clsContent);
 
-            // 将上传的PDF文件转换为字节数组
+            // immigrationForms PDF
             byte[] immigrationFormsBytes = immigrationForms.getBytes();
 
-            // 合并PDF
-            byte[] combinedPdf = pdfMergeService.mergePdfs(latexContent, immigrationFormsBytes);
+            // 合并PDF，传入clsContent
+            byte[] combinedPdf = pdfMergeService.mergePdfs(mainPdf, immigrationFormsBytes, clsContent);
 
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_PDF)
+                    .header("Content-Disposition", "attachment; filename=\"combined.pdf\"")
                     .body(combinedPdf);
         } catch (Exception e) {
             log.error("Error combining PDFs", e);

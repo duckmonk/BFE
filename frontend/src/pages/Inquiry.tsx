@@ -138,7 +138,7 @@ const Inquiry: React.FC = () => {
 
   if (isSubmitted) {
     return (
-      <Box sx={{ bgcolor: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ bgcolor: '#f3f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Container maxWidth="lg" sx={{ pt: 6, pb: 6, flex: 1 }}>
           <Grid container spacing={4} justifyContent="center" alignItems="center">
             <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: 'center' }}>
@@ -148,19 +148,6 @@ const Inquiry: React.FC = () => {
               <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
                 We will get back to you in 3 days! Via the email you provided.
               </Typography>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Box sx={{ maxWidth: '100%', height: 'auto' }}>
-                <img
-                  src="https://source.unsplash.com/800x600/?fruit,peach"
-                  alt="success"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    borderRadius: '16px',
-                  }}
-                />
-              </Box>
             </Grid>
           </Grid>
         </Container>

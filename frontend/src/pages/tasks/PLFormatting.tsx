@@ -1,102 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { Box, TextField, Button, Paper, Typography, Grid, Modal, Backdrop, Fade, IconButton } from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+import { Box, TextField, Button, Paper, Typography, Grid, Select, MenuItem, FormControl, InputLabel, Snackbar, Alert, AlertTitle } from '@mui/material';
 import { clientCaseApi } from '../../services/api';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 
-// Modal style
-const modalStyle = {
-  position: 'absolute' as 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: '90%', // Adjusted width
-  height: '90%', // Adjusted height
-  bgcolor: 'background.paper',
-  border: '2px solid #000',
-  boxShadow: 24,
-  p: 4,
-  display: 'flex', // Use flexbox for content
-  flexDirection: 'column', // Stack items vertically
-};
+interface PLFormattingProps {
+  clientCaseId: number;
+}
 
-const PLFormatting: React.FC<{ clientCaseId: number }> = ({ clientCaseId }) => {
-  const [textItems, setTextItems] = useState<string[]>(['']);
+const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
+  const [latexContent, setLatexContent] = useState<string>('');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [openModal, setOpenModal] = useState(false);
-
-  console.log('PLFormatting state - loading:', loading, 'textItems:', textItems, 'clientCaseId prop:', clientCaseId);
+  const [typeOfPetition, setTypeOfPetition] = useState<string>('');
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+    title: '',
+  });
+  const [plFormattingCls, setPlFormattingCls] = useState<string>('');
+  const hasAutoPreview = useRef(false);
 
   // Fetch data on component mount and when clientCaseId changes
   useEffect(() => {
     if (clientCaseId) {
-      const fetchPlFormatting = async () => {
+      const fetchData = async () => {
         try {
           const response = await clientCaseApi.getCaseById(clientCaseId);
-          if (response.data && response.data.plFormatting) {
-            // 从后端获取文本列表
-            const items = response.data.plFormatting.split('\\par').filter((item: string) => item.trim());
-            setTextItems(items.length > 0 ? items : ['']);
-          } else {
-            setTextItems(['']);
+          if (response.data) {
+            if (response.data.plFormatting) {
+              setLatexContent(response.data.plFormatting);
+            }
+            if (response.data.typeOfPetition) {
+              setTypeOfPetition(response.data.typeOfPetition);
+            }
+            if (response.data.plFormattingCls) {
+              setPlFormattingCls(response.data.plFormattingCls);
+            }
           }
         } catch (error) {
-          console.error('Failed to fetch plFormatting data:', error);
-          setTextItems(['']);
+          console.error('Failed to fetch data:', error);
         }
       };
-      fetchPlFormatting();
-    } else {
-      setTextItems(['']);
+      fetchData();
+      hasAutoPreview.current = false; // 每次切换caseId时重置自动预览标志
     }
   }, [clientCaseId]);
 
-  const handleOpenModal = () => setOpenModal(true);
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    // Clean up the object URL when modal is closed
-    if (pdfUrl) {
-      window.URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null); // Clear the URL after revoking
+  // 自动预览PDF逻辑
+  useEffect(() => {
+    if (
+      latexContent && plFormattingCls &&
+      !hasAutoPreview.current &&
+      clientCaseId
+    ) {
+      hasAutoPreview.current = true;
+      handleSave();
     }
-  };
+  }, [latexContent, plFormattingCls, clientCaseId]);
 
-  const handleTextChange = (index: number, value: string) => {
-    const newItems = [...textItems];
-    newItems[index] = value;
-    setTextItems(newItems);
-  };
-
-  const handleAddItem = () => {
-    setTextItems([...textItems, '']);
-  };
-
-  const handleDeleteItem = (index: number) => {
-    const newItems = textItems.filter((_, i) => i !== index);
-    setTextItems(newItems.length > 0 ? newItems : ['']);
-  };
-
-  const handleRender = async () => {
-    if (!clientCaseId) {
-      alert('Case ID is not available.');
+  // 保存并预览
+  const handleSave = async () => {
+    if (!clientCaseId || !latexContent.trim()) {
+      setSnackbar({ open: true, message: 'Please enter LaTeX content.', severity: 'error', title: 'Input Required' });
       return;
     }
     setLoading(true);
-    if (pdfUrl) {
-      window.URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null);
-    }
     try {
-      // 只发送文本列表到后端
-      const textList = textItems.filter(item => item.trim());
-      const pdfBlob = await clientCaseApi.saveAndPreviewLatex(clientCaseId, textList);
+      const pdfBlob = await clientCaseApi.saveAndPreviewLatex(clientCaseId, typeOfPetition, latexContent);
+      setSnackbar({ open: true, message: 'Your document was saved and rendered successfully.', severity: 'success', title: 'Success' });
+      if (pdfUrl) {
+        window.URL.revokeObjectURL(pdfUrl);
+        setPdfUrl(null);
+      }
       const url = window.URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
-      handleOpenModal();
-    } catch (error) {
-      console.error('Rendering failed:', error);
-      alert('Rendering failed, please check the content and ensure backend is running.');
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Failed to save or render.',
+        severity: 'error',
+        title: 'Error',
+      });
     }
     setLoading(false);
   };
@@ -109,95 +93,117 @@ const PLFormatting: React.FC<{ clientCaseId: number }> = ({ clientCaseId }) => {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    // No need to revoke URL here, it will be done when modal closes
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h6" sx={{ mb: 3 }}>PL Formatting</Typography>
-      <Grid container spacing={3} direction="column">
-        <Grid size={{ xs: 12 }}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle1" sx={{ mb: 2 }}>Document Content</Typography>
-            {textItems.map((text, index) => (
-              <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={text}
-                  onChange={(e) => handleTextChange(index, e.target.value)}
-                  placeholder="Enter text content..."
-                  variant="outlined"
-                  sx={{ mr: 1 }}
-                />
-                <IconButton 
-                  onClick={() => handleDeleteItem(index)}
-                  // disabled={textItems.length === 1}
-                  sx={{ mt: 1 }}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            ))}
-            <Button
-              startIcon={<AddIcon />}
-              onClick={handleAddItem}
-              sx={{ mb: 2 }}
-            >
-              Add Section
-            </Button>
-            <Button
-              variant="contained"
-              sx={{ mt: 2, bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#333' } }}
-              onClick={handleRender}
-              disabled={loading || !textItems.some(item => item.trim()) || !clientCaseId}
-            >
-              {loading ? 'Rendering...' : 'Save and preview'}
-            </Button>
-          </Paper>
-        </Grid>
-      </Grid>
+    <Box sx={{ 
+      display: 'flex', 
+      height: '100vh',
+      position: 'relative'
+    }}>
+      {/* 左侧编辑区域 */}
+      <Box sx={{ 
+        flex: 1,
+        p: 3,
+        overflow: 'auto',
+        borderRight: '1px solid #e0e0e0'
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6">PL Formatting</Typography>
+        </Box>
 
-      {/* PDF Preview Modal */}
-      <Modal
-        aria-labelledby="pdf-preview-modal-title"
-        aria-describedby="pdf-preview-modal-description"
-        open={openModal}
-        onClose={handleCloseModal}
-        closeAfterTransition
-        slots={{ backdrop: Backdrop }}
-        slotProps={{
-          backdrop: {
-            timeout: 500,
-          },
-        }}
-      >
-        <Fade in={openModal}>
-          <Box sx={modalStyle}>
-            <Typography id="pdf-preview-modal-title" variant="h6" component="h2" sx={{ mb: 2 }}>
-              PDF Preview
-            </Typography>
-            <Box sx={{ flex: 1, minHeight: 0 }}> {/* iframe container */}
-              {pdfUrl && (
-                <iframe
-                  src={pdfUrl}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  title="PDF Preview"
-                />
-              )}
-            </Box>
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-               <Button onClick={handleDownloadPDF} variant="outlined" sx={{ mr: 1 }}>
-                Download PDF
-              </Button>
-              <Button onClick={handleCloseModal} variant="contained">
-                Close
-              </Button>
-            </Box>
+        <Grid container spacing={3} direction="column">
+          <Grid size={{ xs: 12 }}>
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <FormControl sx={{ minWidth: 300 }}>
+                  <InputLabel>Type of Petition</InputLabel>
+                  <Select
+                    value={typeOfPetition}
+                    label="Type of Petition"
+                    onChange={(e) => setTypeOfPetition(e.target.value)}
+                  >
+                    <MenuItem value="I-140, EB-2 National Interest Waiver">I-140, EB-2 National Interest Waiver</MenuItem>
+                    <MenuItem value="I-140, EB-1A Alien of Extraordinary Ability">I-140, EB-1A Alien of Extraordinary Ability</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="contained"
+                  onClick={handleSave}
+                  disabled={loading || !typeOfPetition}
+                  sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#333' } }}
+                >
+                  {loading ? 'Rendering...' : 'Save and Preview'}
+                </Button>
+              </Box>
+            </Paper>
+          </Grid>
+
+          <Grid size={{ xs: 12 }}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>LaTeX Content</Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={20}
+                value={latexContent}
+                onChange={(e) => setLatexContent(e.target.value)}
+                placeholder="LaTeX content will appear here after initialization..."
+                variant="outlined"
+                sx={{ mb: 2 }}
+              />
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* 右侧PDF预览区域 */}
+      {pdfUrl && (
+        <Box sx={{ 
+          flex: 1,
+          height: '100%',
+          borderLeft: '1px solid #e0e0e0',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <Box sx={{ 
+            p: 2, 
+            borderBottom: '1px solid #e0e0e0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Typography variant="subtitle1">PDF Preview</Typography>
+            <Button onClick={handleDownloadPDF} variant="outlined" size="small">
+              Download PDF
+            </Button>
           </Box>
-        </Fade>
-      </Modal>
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <iframe
+              src={pdfUrl}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              title="PDF Preview"
+            />
+          </Box>
+        </Box>
+      )}
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+          variant="filled"
+        >
+          <AlertTitle>{snackbar.title}</AlertTitle>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

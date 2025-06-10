@@ -32,8 +32,14 @@ public class ClientCase {
 
     private Boolean niwPetitionFinished = false;
 
+    private String typeOfPetition;
+
+    // PL Formatting LaTeX cls content
+    private String plFormattingCls;
+
     // PL Formatting LaTeX content
     private String plFormatting;
+
 
     // Immigration Forms file URL
     private String immigrationForms;

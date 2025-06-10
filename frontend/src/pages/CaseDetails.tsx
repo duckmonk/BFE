@@ -23,6 +23,8 @@ import PLFormatting from './tasks/PLFormatting';
 import { getEnabledTasks } from '../utils/taskUtils';
 import ImmigrationForms from './tasks/ImmigrationForms';
 import CombineDocuments from './tasks/CombineDocuments';
+import MenuIcon from '@mui/icons-material/Menu';
+import IconButton from '@mui/material/IconButton';
 
 interface SectionChild {
   label: string;
@@ -48,6 +50,7 @@ const CaseDetails: React.FC = () => {
   const [currentChild, setCurrentChild] = useState<string>('');
   const [showJumpToLanding, setShowJumpToLanding] = useState(false);
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // 根据用户类型定义sections
   const sections = useMemo(() => (
@@ -166,6 +169,14 @@ const CaseDetails: React.FC = () => {
     }
   }, [searchParams, sections]);
 
+  useEffect(() => {
+    const section = sections[selected.section];
+    if (section) {
+      setCurrentSection(section.title);
+      setCurrentChild(section.children[selected.child]?.label || '');
+    }
+  }, [selected, sections]);
+
   const handleSectionClick = (idx: number) => {
     setOpenSections(prev => prev.map((open, i) => i === idx ? !open : open));
   };
@@ -232,103 +243,163 @@ const CaseDetails: React.FC = () => {
     navigate('/landing');
   };
 
+  // 进入PL Formatting时自动收起侧边栏
+  useEffect(() => {
+    if (currentChild === 'PL Formatting') {
+      setSidebarOpen(false);
+    }
+  }, [currentChild]);
+
   return (
     <Box sx={{ bgcolor: '#f3f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Container maxWidth="lg" sx={{ pt: 6, pb: 6, flex: 1 }}>
-        <Typography variant="h6" fontWeight={700} sx={{ mb: 4 }}>
-          NIW Process
-        </Typography>
-        <Grid container spacing={4}>
-          {/* 左侧步骤导航 */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ bgcolor: '#fff', borderRadius: 2, p: 0, boxShadow: 0, border: '1px solid #e0e6ef' }}>
-              <List disablePadding>
-                {sections.map((section, sIdx) => (
-                  <Box key={section.title}>
-                    <ListItem
-                      sx={{ pl: 2, py: 1, bgcolor: '#f6f8fa', fontWeight: 700, cursor: 'pointer', borderLeft: '3px solid #1976d2', display: 'flex', alignItems: 'center' }}
-                      onClick={() => handleSectionClick(sIdx)}
-                    >
-                      <Box sx={{ mr: 1, fontSize: 12, color: '#888', display: 'flex', alignItems: 'center' }}>
-                        {openSections[sIdx] ? '▼' : '▶'}
-                      </Box>
-                      <ListItemText primary={<Typography fontWeight={700} fontSize={15}>{section.title}</Typography>} />
-                    </ListItem>
-                    <Collapse in={openSections[sIdx]} timeout="auto" unmountOnExit>
-                      {section.children.map((child, cIdx) => {
-                        const isEnabled = section.title === 'Information Collection' || section.title === 'Format' || isTaskEnabled(child.label);
-                        const taskKey = Object.entries(taskMapping).find(([_, label]) => label === child.label)?.[0];
-                        const taskFinished = taskKey ? tasksStatus[taskKey] : false;
-                        const childWithFinished = child as SectionChild;
-                        return (
-                          <ListItem
-                            key={child.label}
-                            sx={{
-                              pl: 3,
-                              py: 1,
-                              cursor: isEnabled ? 'pointer' : 'not-allowed',
-                              bgcolor: selected.section === sIdx && selected.child === cIdx ? '#159895' : undefined,
-                              borderLeft: selected.section === sIdx && selected.child === cIdx ? '3px solid #1976d2' : '3px solid transparent',
-                              opacity: isEnabled ? 1 : 0.5,
-                            }}
-                            onClick={() => {
-                              if (isEnabled) {
-                                setSelected({ section: sIdx, child: cIdx });
-                                // 更新 URL 参数以保存当前 tab 信息
-                                setSearchParams({ section: sIdx.toString(), child: cIdx.toString() });
-                                // 设置当前 section 和 child
-                                setCurrentSection(section.title);
-                                setCurrentChild(child.label);
-                              }
-                            }}
-                          >
-                            <ListItemText
-                              primary={
-                                child.label.includes(': ')
-                                  ? (
-                                    <>
+      <Container maxWidth="lg" sx={{
+        pt: currentChild === 'PL Formatting' ? 0 : 6,
+        pb: currentChild === 'PL Formatting' ? 0 : 6,
+        flex: 1,
+        maxWidth: currentChild === 'PL Formatting' ? '100% !important' : undefined,
+        width: currentChild === 'PL Formatting' ? '100vw' : undefined,
+        m: currentChild === 'PL Formatting' ? 0 : undefined,
+        p: currentChild === 'PL Formatting' ? 0 : undefined,
+        minWidth: 0
+      }}>
+        {currentChild === 'PL Formatting' && !sidebarOpen && (
+          <Box sx={{
+            position: 'fixed',
+            top: '10%',
+            left: 0,
+            transform: 'translateY(-50%)',
+            zIndex: 1300,
+            bgcolor: '#fff',
+            borderRadius: '0 12px 12px 0',
+            boxShadow: 3,
+            p: 0.2,
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            <IconButton onClick={() => setSidebarOpen(true)} size="small">
+              <MenuIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Box>
+        )}
+        <Grid container spacing={0} sx={{ width: '100%', m: 0 }}>
+          {(currentChild !== 'PL Formatting' || sidebarOpen) && (
+            <Grid size={{ xs: 12, md: currentChild === 'PL Formatting' ? 2 : 4 }} sx={{
+              display: currentChild === 'PL Formatting' && !sidebarOpen ? 'none' : 'block',
+              position: currentChild === 'PL Formatting' ? 'absolute' : 'static',
+              zIndex: 1200,
+              height: '100vh',
+              left: 0,
+              top: 0,
+              bgcolor: '#fff',
+              boxShadow: currentChild === 'PL Formatting' ? 3 : 0,
+              overflow: 'auto'
+            }}>
+              <Paper sx={{ bgcolor: '#fff', borderRadius: 2, p: 0, boxShadow: 0, border: '1px solid #e0e6ef', height: '100vh', overflow: 'auto' }}>
+                <List disablePadding>
+                  {sections.map((section, sIdx) => (
+                    <Box key={section.title}>
+                      <ListItem
+                        sx={{ pl: 2, py: 1, bgcolor: '#f6f8fa', fontWeight: 700, cursor: 'pointer', borderLeft: '3px solid #1976d2', display: 'flex', alignItems: 'center' }}
+                        onClick={() => handleSectionClick(sIdx)}
+                      >
+                        <Box sx={{ mr: 1, fontSize: 12, color: '#888', display: 'flex', alignItems: 'center' }}>
+                          {openSections[sIdx] ? '▼' : '▶'}
+                        </Box>
+                        <ListItemText primary={<Typography fontWeight={700} fontSize={15}>{section.title}</Typography>} />
+                      </ListItem>
+                      <Collapse in={openSections[sIdx]} timeout="auto" unmountOnExit>
+                        {section.children.map((child, cIdx) => {
+                          const isEnabled = section.title === 'Information Collection' || section.title === 'Format' || isTaskEnabled(child.label);
+                          const taskKey = Object.entries(taskMapping).find(([_, label]) => label === child.label)?.[0];
+                          const taskFinished = taskKey ? tasksStatus[taskKey] : false;
+                          const childWithFinished = child as SectionChild;
+                          return (
+                            <ListItem
+                              key={child.label}
+                              sx={{
+                                pl: 3,
+                                py: 1,
+                                cursor: isEnabled ? 'pointer' : 'not-allowed',
+                                bgcolor: selected.section === sIdx && selected.child === cIdx ? '#159895' : undefined,
+                                borderLeft: selected.section === sIdx && selected.child === cIdx ? '3px solid #1976d2' : '3px solid transparent',
+                                opacity: isEnabled ? 1 : 0.5,
+                              }}
+                              onClick={() => {
+                                if (isEnabled) {
+                                  setSelected({ section: sIdx, child: cIdx });
+                                  // 更新 URL 参数以保存当前 tab 信息
+                                  setSearchParams({ section: sIdx.toString(), child: cIdx.toString() });
+                                  // 设置当前 section 和 child
+                                  setCurrentSection(section.title);
+                                  setCurrentChild(child.label);
+                                }
+                              }}
+                            >
+                              <ListItemText
+                                primary={
+                                  child.label.includes(': ')
+                                    ? (
+                                      <>
+                                        <Typography
+                                          fontWeight={selected.section === sIdx && selected.child === cIdx ? 600 : 400}
+                                          fontSize={15}
+                                          sx={{ color: selected.section === sIdx && selected.child === cIdx ? '#fff' : undefined, lineHeight: 1.1 }}
+                                        >
+                                          {child.label.split(': ')[0]}
+                                          {(taskFinished || childWithFinished.finished) && <span style={{ marginLeft: 6 }}>✅</span>}
+                                        </Typography>
+                                        <Typography
+                                          fontWeight={selected.section === sIdx && selected.child === cIdx ? 600 : 400}
+                                          fontSize={15}
+                                          sx={{ color: selected.section === sIdx && selected.child === cIdx ? '#fff' : undefined, lineHeight: 1.1 }}
+                                        >
+                                          {child.label.split(': ')[1]}
+                                        </Typography>
+                                      </>
+                                    )
+                                    : (
                                       <Typography
                                         fontWeight={selected.section === sIdx && selected.child === cIdx ? 600 : 400}
                                         fontSize={15}
-                                        sx={{ color: selected.section === sIdx && selected.child === cIdx ? '#fff' : undefined, lineHeight: 1.1 }}
+                                        sx={{ color: selected.section === sIdx && selected.child === cIdx ? '#fff' : undefined }}
                                       >
-                                        {child.label.split(': ')[0]}
-                                        {(taskFinished || childWithFinished.finished) && <span style={{ marginLeft: 6 }}>✅</span>}
+                                        {child.label}
+                                        {(taskFinished || childWithFinished.finished) && <span style={{ marginLeft: '8px' }}>✅</span>}
                                       </Typography>
-                                      <Typography
-                                        fontWeight={selected.section === sIdx && selected.child === cIdx ? 600 : 400}
-                                        fontSize={13}
-                                        sx={{ color: selected.section === sIdx && selected.child === cIdx ? '#fff' : undefined, lineHeight: 1.1 }}
-                                      >
-                                        {child.label.split(': ')[1]}
-                                      </Typography>
-                                    </>
-                                  )
-                                  : (
-                                    <Typography
-                                      fontWeight={selected.section === sIdx && selected.child === cIdx ? 600 : 400}
-                                      fontSize={15}
-                                      sx={{ color: selected.section === sIdx && selected.child === cIdx ? '#fff' : undefined }}
-                                    >
-                                      {child.label}
-                                      {(taskFinished || childWithFinished.finished) && <span style={{ marginLeft: '8px' }}>✅</span>}
-                                    </Typography>
-                                  )
-                              }
-                            />
-                          </ListItem>
-                        );
-                      })}
-                    </Collapse>
-                  </Box>
-                ))}
-              </List>
-            </Paper>
-          </Grid>
-          {/* 右侧表单区 */}
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Box sx={{ bgcolor: '#fff', borderRadius: 2, p: 4, border: '1px solid #e0e6ef', minHeight: 500, position: 'relative', pb: 2 }}>
-              {/* 动态渲染表单并传递ref */}
+                                    )
+                                }
+                              />
+                            </ListItem>
+                          );
+                        })}
+                      </Collapse>
+                    </Box>
+                  ))}
+                </List>
+              </Paper>
+              {currentChild === 'PL Formatting' && (
+                <IconButton onClick={() => setSidebarOpen(false)} sx={{ position: 'absolute', top: 8, right: 8 }}>
+                  <MenuIcon sx={{ transform: 'rotate(180deg)' }} />
+                </IconButton>
+              )}
+            </Grid>
+          )}
+          <Grid size={{ xs: 12, md: currentChild === 'PL Formatting' ? 12 : 8 }} sx={{
+            ml: currentChild === 'PL Formatting' && sidebarOpen ? { md: '16.6667%' } : 0,
+            transition: 'margin-left 0.3s',
+            width: '100%'
+          }}>
+            <Box sx={{ 
+              bgcolor: '#fff', 
+              borderRadius: 2, 
+              p: currentChild === 'PL Formatting' ? 0 : 4, 
+              border: '1px solid #e0e6ef', 
+              minHeight: 500, 
+              position: 'relative', 
+              pb: 2,
+              width: '100%',
+              m: currentChild === 'PL Formatting' ? 0 : undefined
+            }}>
               {CurrentForm && clientCase && (
                 React.createElement(CurrentForm as any, { 
                   ref: formRef, 

@@ -13,7 +13,7 @@ import java.util.Comparator;
 public class LaTeXServiceImpl implements LaTeXService {
 
     @Override
-    public byte[] convertLatexToPdf(String latexContent) throws IOException, InterruptedException {
+    public byte[] convertLatexToPdf(String latexContent, String clsContent) throws IOException, InterruptedException {
         Path tempDir = null;
         try {
             // 1. 创建临时目录
@@ -21,10 +21,16 @@ public class LaTeXServiceImpl implements LaTeXService {
             Path texFile = tempDir.resolve("input.tex");
             Path pdfFile = tempDir.resolve("input.pdf");
 
-            // 2. 将 LaTeX 内容写入 .tex 文件
+            // 2. 如果有cls内容，创建临时.cls文件
+            if (clsContent != null && !clsContent.trim().isEmpty()) {
+                Path clsFile = tempDir.resolve("pl_template.cls");
+                Files.write(clsFile, clsContent.getBytes());
+            }
+
+            // 3. 将 LaTeX 内容写入 .tex 文件
             Files.write(texFile, latexContent.getBytes());
 
-            // 3. 构建并执行 pdflatex 命令
+            // 4. 构建并执行 pdflatex 命令
             ProcessBuilder pb = new ProcessBuilder("pdflatex", "-interaction=nonstopmode", texFile.toAbsolutePath().toString());
             pb.directory(tempDir.toFile()); // 设置工作目录
             pb.redirectErrorStream(true); // 合并标准错误和标准输出
@@ -38,12 +44,12 @@ public class LaTeXServiceImpl implements LaTeXService {
                 System.out.println("pdflatex output:\n" + processOutput);
             }
 
-            // 4. 检查 pdflatex 是否成功
+            // 5. 检查 pdflatex 是否成功
             if (exitCode != 0) {
                 throw new IOException("pdflatex compilation failed with exit code " + exitCode);
             }
 
-            // 5. 读取生成的 .pdf 文件
+            // 6. 读取生成的 .pdf 文件
             if (!Files.exists(pdfFile)) {
                  throw new IOException("pdflatex did not produce a PDF file.");
             }
@@ -51,7 +57,7 @@ public class LaTeXServiceImpl implements LaTeXService {
             return Files.readAllBytes(pdfFile);
 
         } finally {
-            // 6. 清理临时目录
+            // 7. 清理临时目录
             if (tempDir != null && Files.exists(tempDir)) {
                 try {
                     Files.walk(tempDir)

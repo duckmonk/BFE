@@ -83,10 +83,26 @@ export const clientCaseApi = {
   createCase: async (): Promise<any> => {
     return api.post(`${API_PATHS.CLIENT_CASE}/create`);
   },
-  saveAndPreviewLatex: (caseId: number, textList: string[]): Promise<Blob> => {
-    return api.post(`${API_PATHS.CLIENT_CASE}/save-and-preview-latex?caseId=${caseId}`, textList, {
-      responseType: 'blob'
-    }).then(response => response.data);
+  saveAndPreviewLatex: async (caseId: number, typeOfPetition: string, latexContent: string): Promise<Blob> => {
+    const response = await api.post(
+      `${API_PATHS.CLIENT_CASE}/save-and-preview-latex?caseId=${caseId}&typeOfPetition=${encodeURIComponent(typeOfPetition)}`,
+      latexContent,
+      { headers: { 'Content-Type': 'text/plain' }, responseType: 'blob' }
+    );
+    const contentType = response.headers['content-type'];
+    if (contentType && contentType.includes('application/json')) {
+      // 说明是错误信息
+      const text = await response.data.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error(text);
+      }
+      throw new Error(json.message || 'Unknown error');
+    }
+    // 正常 PDF
+    return response.data;
   },
   update: async (data: any): Promise<any> => {
     return api.put(`${API_PATHS.CLIENT_CASE}/update`, data);
@@ -98,6 +114,11 @@ export const clientCaseApi = {
         'Content-Type': 'multipart/form-data'
       }
     }),
+  setLatexVariables: (caseId: number, typeOfPetition: string) => {
+    return api.post(`${API_PATHS.CLIENT_CASE}/set-latex-variables?caseId=${caseId}&typeOfPetition=${encodeURIComponent(typeOfPetition)}`, null, {
+      responseType: 'arraybuffer'
+    });
+  },
 };
 
 export const infoCollApi = {

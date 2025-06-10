@@ -38,7 +38,19 @@ const InfoCollBasicInfo = forwardRef(({ clientCaseId, userId, userType }: { clie
   // 通用输入处理
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const newFormData = { ...formData, [name]: value };
+    
+    // 如果修改的是名字相关字段，自动更新fullName
+    if (['firstName', 'middleName', 'lastName'].includes(name)) {
+      const fullName = [
+        newFormData.firstName,
+        newFormData.middleName,
+        newFormData.lastName
+      ].filter(Boolean).join(' ');
+      newFormData.fullName = fullName;
+    }
+    
+    setFormData(newFormData);
     // 清除该字段的错误状态
     setErrors(prev => ({ ...prev, [name]: false }));
   };
