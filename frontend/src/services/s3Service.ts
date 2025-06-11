@@ -59,7 +59,8 @@ export const uploadFileToS3 = async (file: File, key: string): Promise<string> =
     console.log('File uploaded successfully');
     
     // 返回文件的URL
-    const fileUrl = `https://${process.env.REACT_APP_S3_BUCKET_NAME}.s3.${process.env.REACT_APP_AWS_REGION}.amazonaws.com/${key}`;
+    const fileUrl = `https://s3.${process.env.REACT_APP_AWS_REGION}.amazonaws.com/${process.env.REACT_APP_S3_BUCKET_NAME}/${key}`;
+    // const fileUrl = `https://${process.env.REACT_APP_S3_BUCKET_NAME}.s3.${process.env.REACT_APP_AWS_REGION}.amazonaws.com/${key}`;
     console.log('Generated file URL:', fileUrl);
     return fileUrl;
   } catch (error) {

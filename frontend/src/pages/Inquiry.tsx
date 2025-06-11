@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, TextField, Button, Grid, MenuItem, Alert, Snackbar } from '@mui/material';
 import { inquiryApi } from '../services/api';
 
@@ -83,6 +83,13 @@ const Inquiry: React.FC = () => {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // 添加一个 useEffect 来处理提交后的滚动
+  useEffect(() => {
+    if (isSubmitted) {
+      window.scrollTo(0, 0);
+    }
+  }, [isSubmitted]);
+
   // 处理表单变化
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -138,14 +145,20 @@ const Inquiry: React.FC = () => {
 
   if (isSubmitted) {
     return (
-      <Box sx={{ bgcolor: '#f3f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Container maxWidth="lg" sx={{ pt: 6, pb: 6, flex: 1 }}>
-          <Grid container spacing={4} justifyContent="center" alignItems="center">
+      <Box sx={{ 
+        bgcolor: '#f3f2ee', 
+        minHeight: '50vh', // 减小最小高度
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center' // 垂直居中
+      }}>
+        <Container maxWidth="lg" sx={{ py: 4 }}> {/* 减小上下padding */}
+          <Grid container spacing={2} justifyContent="center" alignItems="center">
             <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: 'center' }}>
-              <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
+              <Typography variant="h4" component="h1" fontWeight={700} gutterBottom> {/* 减小标题大小 */}
                 Thank you for your inquiry!
               </Typography>
-              <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
+              <Typography variant="body1" sx={{ mt: 2, mb: 1 }}> {/* 减小间距和字体大小 */}
                 We will get back to you in 3 days! Via the email you provided.
               </Typography>
             </Grid>
@@ -158,12 +171,12 @@ const Inquiry: React.FC = () => {
   return (
     <Box sx={{ bgcolor: '#f3f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Container maxWidth="lg" sx={{ pt: 6, pb: 6, flex: 1 }}>
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12, md: 7 }}>
-            <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
+        <Grid container spacing={4} justifyContent="center">
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Typography variant="h3" component="h1" fontWeight={700} gutterBottom align="center">
               Submit Your Inquires
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }} align="center">
               Please provide the following information so we can better evaluate whether we can take your case.
             </Typography>
 

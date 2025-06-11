@@ -29,6 +29,8 @@ import com.bfe.project.entity.InfoColl.InfoCollBasicInfo;
 import com.bfe.project.service.InfoColl.InfoCollBasicInfoService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.bfe.project.entity.InfoColl.InfoCollAcademicHistory;
+import com.bfe.project.service.InfoColl.InfoCollAcademicHistoryService;
 
 @RestController
 @RequestMapping("/client-case")
@@ -57,21 +59,53 @@ public class ClientCaseController {
     @Autowired
     private InfoCollBasicInfoService infoCollBasicInfoService;
 
+    @Autowired
+    private InfoCollAcademicHistoryService infoCollAcademicHistoryService;
+
     @GetMapping("/{id}")
     public Map<String, Object> getByCaseId(@PathVariable Integer id) {
+        // 校验是否登录
+        StpUtil.checkLogin();
+
+        // 获取当前登录用户
+        Integer userId = StpUtil.getLoginIdAsInt();
+        User user = userService.getById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found.");
+        }
+
+
         // 查询用户最新的case
         ClientCase existingCase = clientCaseService.lambdaQuery()
                 .eq(ClientCase::getId, id)
                 .one();
-                
-        Map<String, Object> result = new HashMap<>();
-        if (existingCase != null) {
-            result.put("status", "success");
-            result.putAll(existingCase.toMap());
-            result.put("tasksStatus", taskCenterController.getTasksStatus(existingCase.getId()));
-            return result;
+        
+        if (existingCase == null) {
+            throw new RuntimeException("Case not found.");
         }
-        return null;
+
+        if (user.getUserType().equals("client")) {
+            if (!existingCase.getUserId().equals(userId)) {
+                throw new RuntimeException("Not authorized.");
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "success");
+        result.putAll(existingCase.toMap());
+        
+        // 将 exhibit list 从 JSON 字符串还原为数组
+        if (existingCase.getExhibitList() != null && !existingCase.getExhibitList().trim().isEmpty()) {
+            try {
+                List<String> exhibitList = new ObjectMapper().readValue(existingCase.getExhibitList(), List.class);
+                result.put("exhibitList", exhibitList);
+            } catch (Exception e) {
+                log.error("Failed to parse exhibit list JSON", e);
+            }
+        }
+        
+        result.put("tasksStatus", taskCenterController.getTasksStatus(existingCase.getId()));
+        return result;
     }
 
     @GetMapping("/current")
@@ -97,8 +131,7 @@ public class ClientCaseController {
 
             // 如果 inquiry 存在且 caseStatusBfeInq 为 CLOSED，则视为 not_found
             if (latestInquiry != null && "CLOSED".equalsIgnoreCase(latestInquiry.getCaseStatusBfeInq())) {
-                result.put("status", "not_found");
-                return result;
+                result.put("caseStatusBfeInq", "CLOSED");
             }
 
             result.put("status", "success");
@@ -226,11 +259,12 @@ public class ClientCaseController {
         return result;
     }
 
-    @PostMapping(value = "/save-and-preview-latex", consumes = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<byte[]> saveAndPreviewLatex(
+    @PostMapping(value = "/init-latex", consumes = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> initLatex(
             @RequestParam Integer caseId,
             @RequestParam String typeOfPetition,
-            @RequestBody String latexContent) throws JsonProcessingException {
+            @RequestParam(required = false) String exhibitList
+            ) throws JsonProcessingException {
         try {
             // 1. 查找 ClientCase
             ClientCase clientCase = clientCaseService.getById(caseId);
@@ -240,7 +274,7 @@ public class ClientCaseController {
                 errorBody.put("message", "Case with ID " + caseId + " not found.");
                 return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
+                    .body(new ObjectMapper().writeValueAsString(errorBody));
             }
 
             // 2. 获取basic info中的full name
@@ -250,10 +284,10 @@ public class ClientCaseController {
             if (basicInfo == null || basicInfo.getFullName() == null || basicInfo.getFullName().trim().isEmpty()) {
                 Map<String, Object> errorBody = new HashMap<>();
                 errorBody.put("status", "error");
-                errorBody.put("message", "Basic info not found or full name is empty.");
+                errorBody.put("message", "Basic info not found or full name is empty, please check 'Info Coll - Basic Info' section.");
                 return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
+                    .body(new ObjectMapper().writeValueAsString(errorBody));
             }
 
             // 3. 获取律师信息
@@ -265,32 +299,32 @@ public class ClientCaseController {
             if (inquiry == null || inquiry.getBfeSendOutAttorneyInq() == null) {
                 Map<String, Object> errorBody = new HashMap<>();
                 errorBody.put("status", "error");
-                errorBody.put("message", "Attorney info not found.");
+                errorBody.put("message", "Attorney not selected, please check 'Inquiry Dashboard - View Details - Send Out Attorney' dropdown.");
                 return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
+                    .body(new ObjectMapper().writeValueAsString(errorBody));
             }
 
             User attorney = userService.getById(inquiry.getBfeSendOutAttorneyInq());
             if (attorney == null) {
                 Map<String, Object> errorBody = new HashMap<>();
                 errorBody.put("status", "error");
-                errorBody.put("message", "Attorney not found.");
+                errorBody.put("message", "Attorney not found, please select another attorney.");
                 return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
+                    .body(new ObjectMapper().writeValueAsString(errorBody));
             }
 
-            String clsContent = new String(Files.readAllBytes(Paths.get("./resources/latex/pl_template.cls")));
-            clsContent = clsContent.replace("REPLACE-PETITIONER-NAME", basicInfo.getFullName());
-            clsContent = clsContent.replace("REPLACE-TYPE-OF-PETITION", typeOfPetition);
-            clsContent = clsContent.replace("REPLACE-HE-SHE-LOW", basicInfo.getGender().equals("Male") ? "He" : "She");
-            clsContent = clsContent.replace("REPLACE-HE-SHE-UP", basicInfo.getGender().equals("Male") ? "He" : "She");
-            clsContent = clsContent.replace("REPLACE-HIS-HER-LOW", basicInfo.getGender().equals("Male") ? "His" : "Her");
-            clsContent = clsContent.replace("REPLACE-MR-MS", basicInfo.getGender().equals("Male") ? "Mr." : "Ms.");
-            clsContent = clsContent.replace("REPLACE-ATTORNEY-NAME", attorney.getName());
-            clsContent = clsContent.replace("REPLACE-ATTORNEY-EMAIL", attorney.getEmail());
-            clsContent = clsContent.replace("REPLACE-LAW-FIRM-NAME", attorney.getFirmName());
+            String latexContent = new String(Files.readAllBytes(Paths.get("./resources/latex/seed.tex")));
+            latexContent = latexContent.replace("REPLACE-PETITIONER-NAME", basicInfo.getFullName());
+            latexContent = latexContent.replace("REPLACE-TYPE-OF-PETITION", typeOfPetition);
+            latexContent = latexContent.replace("REPLACE-HE-SHE-LOW", basicInfo.getGender().equals("Male") ? "He" : "She");
+            latexContent = latexContent.replace("REPLACE-HE-SHE-UP", basicInfo.getGender().equals("Male") ? "He" : "She");
+            latexContent = latexContent.replace("REPLACE-HIS-HER-LOW", basicInfo.getGender().equals("Male") ? "His" : "Her");
+            latexContent = latexContent.replace("REPLACE-MR-MS", basicInfo.getGender().equals("Male") ? "Mr" : "Ms");
+            latexContent = latexContent.replace("REPLACE-ATTORNEY-NAME", attorney.getName());
+            latexContent = latexContent.replace("REPLACE-ATTORNEY-EMAIL", attorney.getEmail());
+            latexContent = latexContent.replace("REPLACE-LAW-FIRM-NAME", attorney.getFirmName());
 
             // 设置律所地址信息
             String firmAddress = "";
@@ -309,19 +343,92 @@ public class ClientCaseController {
                 firmEmail = "info@yclawgroup.com";
                 firmWebsite = "yclawgroup.com";
             } else {
-                firmAddress = "mock address";
-                firmPhone = "mock phone";
-                firmEmail = "mock email";
-                firmWebsite = "mock website";
+                firmAddress = "MockAddress";
+                firmPhone = "MockPhone";
+                firmEmail = "MockEmail";
+                firmWebsite = "MockWebsite";
             }
 
-            clsContent = clsContent.replace("REPLACE-LAW-FIRM-ADDRESS", firmAddress);
-            clsContent = clsContent.replace("REPLACE-LAW-FIRM-PHONE", firmPhone);
-            clsContent = clsContent.replace("REPLACE-LAW-FIRM-EMAIL", firmEmail);
-            clsContent = clsContent.replace("REPLACE-LAW-FIRM-WEBSITE", firmWebsite);
+            latexContent = latexContent.replace("REPLACE-LAW-FIRM-ADDRESS", firmAddress);
+            latexContent = latexContent.replace("REPLACE-LAW-FIRM-PHONE", firmPhone);
+            latexContent = latexContent.replace("REPLACE-LAW-FIRM-EMAIL", firmEmail);
+            latexContent = latexContent.replace("REPLACE-LAW-FIRM-WEBSITE", firmWebsite);
+
+            // 生成学历LaTeX列表
+            List<InfoCollAcademicHistory> academicList = infoCollAcademicHistoryService.lambdaQuery()
+                .eq(InfoCollAcademicHistory::getClientCaseId, caseId)
+                .orderByAsc(InfoCollAcademicHistory::getId)
+                .list();
+            StringBuilder educationListContent = new StringBuilder();
+            for (int i = 0; i < academicList.size(); i++) {
+                InfoCollAcademicHistory edu = academicList.get(i);
+                educationListContent.append("\\item \\textbf{")
+                    .append(edu.getSchoolName() != null ? edu.getSchoolName() : "")
+                    .append(":} ")
+                    .append(edu.getDegree() != null ? edu.getDegree() : "");
+                if (edu.getMajor() != null && !edu.getMajor().isEmpty()) {
+                    educationListContent.append(" with a major in ").append(edu.getMajor());
+                }
+                if (edu.getStatus() != null && !edu.getStatus().isEmpty()) {
+                    educationListContent.append(" (").append(edu.getStatus()).append(")");
+                }
+                educationListContent.append(" (Exhibit ").append(i + 1).append(").");
+                educationListContent.append("\n");
+            }
+            latexContent = latexContent.replace("REPLACE-EDUCATION-LIST", educationListContent.toString());
+
+            // 生成学历summary
+            String[] numberWords = {"a", "two", "three", "four", "five"};
+            StringBuilder summary = new StringBuilder();
+            int n = academicList.size();
+            if (n == 1) {
+                InfoCollAcademicHistory edu = academicList.get(0);
+                summary.append("a ")
+                    .append(edu.getDegree() != null ? edu.getDegree() : "degree");
+                if (edu.getMajor() != null && !edu.getMajor().isEmpty()) {
+                    summary.append(" in ").append(edu.getMajor());
+                }
+                summary.append(" from ").append(edu.getSchoolName() != null ? edu.getSchoolName() : "");
+                summary.append(" (Exhibit 1)");
+            } else if (n > 1) {
+                if (n <= 5) {
+                    summary.append(numberWords[n - 1]);
+                } else {
+                    summary.append(n);
+                }
+                summary.append(" degrees: ");
+                for (int i = 0; i < n; i++) {
+                    InfoCollAcademicHistory edu = academicList.get(i);
+                    summary.append("a ")
+                        .append(edu.getDegree() != null ? edu.getDegree() : "degree");
+                    if (edu.getMajor() != null && !edu.getMajor().isEmpty()) {
+                        summary.append(" in ").append(edu.getMajor());
+                    }
+                    summary.append(" from ").append(edu.getSchoolName() != null ? edu.getSchoolName() : "");
+                    summary.append(" (Exhibit ").append(i + 1).append(")");
+                    if (i == n - 2) {
+                        summary.append(" and ");
+                    } else if (i < n - 2) {
+                        summary.append(", ");
+                    }
+                }
+            }
+            latexContent = latexContent.replace("REPLACE-EDUCATION-SUMMARY", summary.toString());
+
+            // 处理 Exhibit List
+            if (exhibitList != null && !exhibitList.trim().isEmpty()) {
+                List<String> exhibitListArray = new ObjectMapper().readValue(exhibitList, List.class);
+                StringBuilder exhibitListContent = new StringBuilder();
+                for (int i = 0; i < exhibitListArray.size(); i++) {
+                    exhibitListContent.append("\\item \\textbf{Exhibit ").append(i + 1).append("}: ").append(exhibitListArray.get(i)).append("\n");
+                }
+                latexContent = latexContent.replace("REPLACE-EXHIBIT-LIST", exhibitListContent.toString());
+                
+                // 将 exhibit list 保存到数据库
+                clientCase.setExhibitList(exhibitList);
+            }
 
             // 保存
-            clientCase.setPlFormattingCls(clsContent);
             clientCase.setTypeOfPetition(typeOfPetition);
             // 如果 latexContent 为空，则使用 seed.tex 内容
             if (latexContent == null || latexContent.trim().isEmpty()) {
@@ -330,14 +437,9 @@ public class ClientCaseController {
             clientCase.setPlFormatting(latexContent);
             clientCaseService.updateById(clientCase);
 
-            // 生成 PDF
-            byte[] pdfBytes = latexService.convertLatexToPdf(latexContent, clsContent);
-
             return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header("Content-Disposition", "attachment; filename=\"document.pdf\"")
-                .body(pdfBytes);
-
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(latexContent);
         } catch (Exception e) {
             e.printStackTrace();
             String errorMessage = e.getMessage();
@@ -347,10 +449,34 @@ public class ClientCaseController {
             Map<String, Object> errorBody = new HashMap<>();
             errorBody.put("status", "error");
             errorBody.put("message", errorMessage);
-            System.out.println("errorBody");
             return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ObjectMapper().writeValueAsBytes(errorBody));
+                .body(new ObjectMapper().writeValueAsString(errorBody));
+        }
+    }
+
+    @PostMapping(value = "/save-and-preview-latex", consumes = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<byte[]> saveAndPreviewLatex(
+            @RequestParam Integer caseId,
+            @RequestBody String latexContent
+            ) throws JsonProcessingException {
+        try {
+            // 1. 保存 latexContent 到数据库
+            ClientCase clientCase = clientCaseService.getById(caseId);
+            clientCase.setPlFormatting(latexContent);
+            clientCaseService.updateById(clientCase);
+
+            // 2. 生成 PDF
+            String clsContent = new String(Files.readAllBytes(Paths.get("./resources/latex/pl_template.cls")));
+            byte[] pdfBytes = latexService.convertLatexToPdf(latexContent, clsContent);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header("Content-Disposition", "attachment; filename=\"document.pdf\"")
+                .body(pdfBytes);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(("Failed to render PDF: " + e.getMessage()).getBytes());
         }
     }
 
@@ -366,7 +492,7 @@ public class ClientCaseController {
 
             // 直接用数据库中已保存的内容
             String latexContent = clientCase.getPlFormatting();
-            String clsContent = clientCase.getPlFormattingCls();
+            String clsContent = new String(Files.readAllBytes(Paths.get("./resources/latex/pl_template.cls")));
 
             if (latexContent == null || latexContent.trim().isEmpty() ||
                 clsContent == null || clsContent.trim().isEmpty()) {

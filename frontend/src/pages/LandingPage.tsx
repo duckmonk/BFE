@@ -196,7 +196,7 @@ const LandingPage: React.FC = () => {
                 boxSizing: 'border-box',
               }}>
                 <Typography variant="h6" fontWeight={700} sx={{ pl: 3, pt: 2, pb: 2 }}>
-                  Case Processing
+                  {clientCase?.caseStatusBfeInq === 'CLOSED' ? 'Case Closed ✅' : 'Case Processing'}
                 </Typography>
               </Box>
               {/* 嵌套大卡片 */}
@@ -462,22 +462,26 @@ const LandingPage: React.FC = () => {
             </Paper>
           </Box>
         </Box>
-        <Box sx={{ textAlign: 'center', mt: 6 }}>
-          <Button
-            variant="contained"
-            size="large"
-            sx={{ bgcolor: '#000', color: '#fff', borderRadius: 2, fontWeight: 700, px: 6, py: 1.5 }}
-            onClick={clientCase?.status === 'success' ? () => navigate('/case-details') : handleCreateCase}
-            disabled={isCreating}
-          >
-            {isCreating ? 'Creating...' : clientCase?.status === 'success' ? 'Continue NIW Application Process' : 'Begin NIW Application Process'}
-          </Button>
-        </Box>
-        <Box sx={{ textAlign: 'center', mt: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            For assistance, contact: support@breakfreeearth.com
-          </Typography>
-        </Box>
+        {clientCase?.caseStatusBfeInq !== 'CLOSED' && (
+          <>
+            <Box sx={{ textAlign: 'center', mt: 6 }}>
+              <Button
+                variant="contained"
+                size="large"
+                sx={{ bgcolor: '#000', color: '#fff', borderRadius: 2, fontWeight: 700, px: 6, py: 1.5 }}
+                onClick={clientCase?.status === 'success' ? () => navigate('/case-details') : handleCreateCase}
+                disabled={isCreating}
+              >
+                {isCreating ? 'Creating...' : clientCase?.status === 'success' ? 'Continue NIW Application Process' : 'Begin NIW Application Process'}
+              </Button>
+            </Box>
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                For assistance, contact: support@breakfreeearth.com
+              </Typography>
+            </Box>
+          </>
+        )}
       </Container>
 
       {/* Task 1 Dialog */}

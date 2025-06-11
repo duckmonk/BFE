@@ -34,6 +34,8 @@ public class ClientCase {
 
     private String typeOfPetition;
 
+    private String exhibitList;
+
     // PL Formatting LaTeX cls content
     private String plFormattingCls;
 

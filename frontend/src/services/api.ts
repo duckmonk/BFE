@@ -83,9 +83,19 @@ export const clientCaseApi = {
   createCase: async (): Promise<any> => {
     return api.post(`${API_PATHS.CLIENT_CASE}/create`);
   },
-  saveAndPreviewLatex: async (caseId: number, typeOfPetition: string, latexContent: string): Promise<Blob> => {
+  initLatex: (caseId: number, typeOfPetition: string, exhibitList: string[]) => 
+    api.post(
+      `${API_PATHS.CLIENT_CASE}/init-latex?caseId=${caseId}&typeOfPetition=${encodeURIComponent(typeOfPetition)}&exhibitList=${encodeURIComponent(JSON.stringify(exhibitList))}`,
+      null,
+      {
+        headers: {
+          'Content-Type': 'text/plain'
+        }
+      }
+    ),
+  saveAndPreviewLatex: async (caseId: number, latexContent: string): Promise<Blob> => {
     const response = await api.post(
-      `${API_PATHS.CLIENT_CASE}/save-and-preview-latex?caseId=${caseId}&typeOfPetition=${encodeURIComponent(typeOfPetition)}`,
+      `${API_PATHS.CLIENT_CASE}/save-and-preview-latex?caseId=${encodeURIComponent(caseId)}`,
       latexContent,
       { headers: { 'Content-Type': 'text/plain' }, responseType: 'blob' }
     );

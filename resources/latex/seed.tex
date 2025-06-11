@@ -1,8 +1,61 @@
 \documentclass{pl_template}  % 使用自定义的类文件
 \usepackage{ulem}
 \usepackage{soul}
+\usepackage{etoolbox}  % 导入 etoolbox 包
 
 \begin{document}
+
+% 定义变量
+\newcommand{\Petitioner}{REPLACE-PETITIONER-NAME}
+\newcommand{\TypeOfPetition}{Type of Petition: REPLACE-TYPE-OF-PETITION}
+\newcommand{\TypeOfPetitionShort}{REPLACE-TYPE-OF-PETITION}
+\newcommand{\HeSheLow}{REPLACE-HE-SHE-LOW}
+\newcommand{\HeSheUp}{REPLACE-HE-SHE-UP}
+\newcommand{\HisHerLow}{REPLACE-HIS-HER-LOW}
+\newcommand{\MrMs}{REPLACE-MR-MS}
+\newcommand{\AttorneyName}{REPLACE-ATTORNEY-NAME}
+\newcommand{\LawFirmName}{REPLACE-LAW-FIRM-NAME}
+\newcommand{\LawFirmAddress}{REPLACE-LAW-FIRM-ADDRESS}
+\newcommand{\LawFirmPhone}{REPLACE-LAW-FIRM-PHONE}
+\newcommand{\LawFirmEmail}{REPLACE-LAW-FIRM-EMAIL}
+\newcommand{\LawFirmWebsite}{REPLACE-LAW-FIRM-WEBSITE}
+
+% 设置首页的页眉和页脚
+% 设置首页的页眉和页脚
+\newcommand{\firstpageheader}{
+    \thispagestyle{fancy}  % 使用 fancy 样式
+    \fancyhead[L]{\textbf{\LawFirmName}\\~\\~}  % 左侧页眉
+    \fancyhead[R]{\LawFirmAddress\\
+    Phone: \LawFirmPhone \textbar{} Email: \LawFirmEmail\\
+    \LawFirmWebsite}  % 右侧页眉
+    \fancyfoot[C]{\thepage}  % 页脚中央显示页码
+}
+
+% 设置其它页面的页眉和页脚
+\newcommand{\otherpagesheader}{
+    \fancyhead[L]{Petitioner/Beneficiary: \Petitioner \\ \TypeOfPetition}  % 左侧页眉
+    \fancyhead[R]{}  % 右侧页眉为空白
+    \fancyfoot[]{}   % 清除默认页脚
+    \fancyfoot[C]{\thepage}  % 页脚中央显示页码
+    \renewcommand{\headrulewidth}{0pt}  % 禁用页眉的横线
+}
+
+% 重定义 plain 页眉样式，使目录页使用其他页面的页眉设置
+\fancypagestyle{plain}{
+    \fancyhf{}  % 清空页眉和页脚
+    \fancyhead[L]{Petitioner/Beneficiary: \Petitioner \\ \TypeOfPetition}  % 左侧页眉
+    \fancyfoot[C]{\thepage}  % 页脚中央显示页码
+    \renewcommand{\headrulewidth}{0pt}  % 禁用页眉的横线
+}
+
+% 定义书信格式结尾，右对齐
+\newcommand{\letterclosing}{
+    \vspace{1cm}  % 上方留出空间，确保结尾部分不会紧贴正文
+    \noindent  Sincerely, \\  % 使用 \hfill 使其右对齐
+    \vspace{1cm}  % 留出签名的空白
+    \noindent \AttorneyName, Esq  \\  % 使用 \hfill 使其右对齐
+    \noindent \LawFirmName  \\  % 使用 \hfill 使其右对齐
+}
 
 \firstpageheader
 
@@ -22,7 +75,7 @@ Phoenix, AZ 85036-1500\\
 \vspace{2em}
 \textbf{Re: EB-2 Immigrant Petition for Permanent Residency with request for a National Interest Waiver} \\
 \textbf{Petitioner/Beneficiary:} \Petitioner\\
-\textbf{Type of Petition:} I-140, EB-2 National Interest Waiver\\
+\textbf{Type of Petition:} \TypeOfPetitionShort\\
 \textbf{Classification Sought:}  Immigration and Nationality Act 203(b)(2)(B) \\
 }
 
@@ -32,7 +85,7 @@ Phoenix, AZ 85036-1500\\
 
 \hspace*{2em} Please be advised that the undersigned counsel represents the above-referenced Petitioner/Beneficiary \textbf{\MrMs.\  \Petitioner} (“Petitioner”) in \HisHerLow \   immigration matters. This letter is respectfully submitted in support of Petitioner’s Immigrant Petition for Alien Worker (I-140).
 
-\hspace*{2em}Petitioner is eligible for EB-2 classification as a member of the professions holding an advanced degree under section 203(b)(2) of the Immigration and Nationality Act, 8 U.S.C. §1153(b)(2) because Petitioner holds a \textbf{DEGREE UPDATE} Master's degree in Information Systems Management from Carnegie Mellon University(Exhibit 1) and a \textbf{DEGREE UPDATE}Bachelor’s degree with a major in Managerial Economics and a minor in Technology Management from the University of California, Davis (Exhibit 2).
+\hspace*{2em}Petitioner is eligible for EB-2 classification as a member of the professions holding an advanced degree under section 203(b)(2) of the Immigration and Nationality Act, 8 U.S.C. §1153(b)(2) because REPLACE-EDUCATION-SUMMARY.
 
 \hspace*{2em}Petitioner believes that \HeSheLow \ should be granted a National Interest Waiver because \HeSheLow \  can demonstrate: (1) \HisHerLow \  proposed endeavor has both substantial merit and national importance; (2) that \HeSheLow is well positioned to advance the proposed endeavor; and (3) that, on balance, it would be beneficial to the United States to waive the job offer and labor certification requirements. \textit{Matter of Dhanasar}, 26 I\&N Dec. 884 (AAO 2016)
 
@@ -49,8 +102,7 @@ Phoenix, AZ 85036-1500\\
 \section{EB-2 Eligibility Statement}
 \Petitioner \  qualifies for the EB-2 classification as a professional with an advanced degree. \HeSheUp \ has completed degrees in fields critical to national security and public policy: 
 \begin{itemize}
-    \item \textbf{University of California, Davis:} Bachelor’s with a major in Managerial Economics and a minor in Technology Management (Exhibit 2).
-    \item \textbf{Carnegie Mellon University:} Master of Science in Information Systems (Exhibit 1). 
+REPLACE-EDUCATION-LIST
 \end{itemize}
 These academic credentials affirm \Petitioner’s expertise and support \HisHerLow \ eligibility for the EB-2 classification.
 
@@ -60,5 +112,10 @@ These academic credentials affirm \Petitioner’s expertise and support \HisHerL
 \letterclosing  % 在此处插入书信结尾
 
 \vspace{2em}
+
+\section*{Exhibit List}
+\begin{itemize}
+REPLACE-EXHIBIT-LIST
+\end{itemize}
  
 \end{document}

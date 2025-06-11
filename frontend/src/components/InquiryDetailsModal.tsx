@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -42,6 +42,7 @@ const InquiryDetailsModal: React.FC<InquiryDetailsModalProps> = ({
   const [lawyerError, setLawyerError] = useState<string | null>(null);
   const [employeeError, setEmployeeError] = useState<string | null>(null);
   const { user } = useAuth(); // Get the current user from AuthContext
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (data) {
@@ -138,47 +139,6 @@ const InquiryDetailsModal: React.FC<InquiryDetailsModalProps> = ({
     }
   };
 
-  const handleCopyCalendar = () => {
-    const calendarUrl = `${window.location.origin}/schedule?inquiryId=${formData.id}`;
-    if (navigator.clipboard && window.isSecureContext) {
-      // 在安全上下文中使用 Clipboard API
-      navigator.clipboard.writeText(calendarUrl)
-        .then(() => {
-          setShowCopiedAlert(true);
-        })
-        .catch(() => {
-          // 如果 Clipboard API 失败，使用后备方案
-          fallbackCopyToClipboard(calendarUrl);
-        });
-    } else {
-      // 在不支持 Clipboard API 的环境中使用后备方案
-      fallbackCopyToClipboard(calendarUrl);
-    }
-  };
-
-  // 后备复制方案
-  const fallbackCopyToClipboard = (text: string) => {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    
-    // 避免滚动到页面底部
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    
-    try {
-      textArea.focus();
-      textArea.select();
-      document.execCommand('copy');
-      setShowCopiedAlert(true);
-    } catch (err) {
-      console.error('Copy error:', err);
-    } finally {
-      document.body.removeChild(textArea);
-    }
-  };
-
   const formatTimestamp = (timestamp: number) => {
     return timestamp ? moment.unix(timestamp).format('YYYY-MM-DD HH:mm:ss') : '';
   };
@@ -224,7 +184,7 @@ const InquiryDetailsModal: React.FC<InquiryDetailsModalProps> = ({
         fullWidth
       >
         <DialogTitle>Case Details</DialogTitle>
-        <DialogContent>
+        <DialogContent ref={modalContentRef}>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             {/* Social Media */}
             <Grid size={{ xs: 12, md: 6 }}>
@@ -247,27 +207,6 @@ const InquiryDetailsModal: React.FC<InquiryDetailsModalProps> = ({
                 onChange={(e) => handleChange('niwScoreInq', e.target.value)}
                 disabled={isFieldDisabled('niwScoreInq', user?.userType)}
               />
-            </Grid>
-
-            {/* Calendar Related */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              {formData?.sendOutCalendarDateInq ? (
-                <TextField
-                  fullWidth
-                  label="When is the scheduled NIW discussion?"
-                  value={formatTimestamp(formData.sendOutCalendarDateInq)}
-                  disabled
-                />
-              ) : (
-                <Button
-                  variant="contained"
-                  onClick={handleCopyCalendar}
-                  fullWidth
-                  disabled={isFieldDisabled('sendOutCalendarDateInq', user?.userType)}
-                >
-                  Copy Schedule Link
-                </Button>
-              )}
             </Grid>
 
             {/* Price Related */}

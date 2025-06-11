@@ -76,13 +76,16 @@ const TaskForm: React.FC<TaskFormProps> = ({
     if (formData[feedbackField]) {
       const textToCopy = formData[feedbackField] || '';
       if (navigator.clipboard && window.isSecureContext) {
+        console.log("Clipboard API is supported");
         // 在安全上下文中使用 Clipboard API
         navigator.clipboard.writeText(textToCopy)
           .catch(() => {
+            console.log("Clipboard API failed");
             // 如果 Clipboard API 失败，使用后备方案
             fallbackCopyToClipboard(textToCopy);
           });
       } else {
+        console.log("Clipboard API not supported");
         // 在不支持 Clipboard API 的环境中使用后备方案
         fallbackCopyToClipboard(textToCopy);
       }

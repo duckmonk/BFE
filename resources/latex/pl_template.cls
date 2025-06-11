@@ -19,19 +19,7 @@
 % 设置页面布局
 \RequirePackage[top=3cm, bottom=2.5cm, left=2.5cm, right=2.5cm, headsep=1.5cm]{geometry}  % 页面边距，headsep 增加页眉与正文之间的间距
 
-% 定义变量
-\newcommand{\Petitioner}{REPLACE-PETITIONER-NAME}
-\newcommand{\TypeOfPetition}{Type of Petition: REPLACE-TYPE-OF-PETITION}
-\newcommand{\HeSheLow}{REPLACE-HE-SHE-LOW}
-\newcommand{\HeSheUp}{REPLACE-HE-SHE-UP}
-\newcommand{\HisHerLow}{REPLACE-HIS-HER-LOW}
-\newcommand{\MrMs}{REPLACE-MR-MS}
-\newcommand{\AttorneyName}{REPLACE-ATTORNEY-NAME}
-\newcommand{\LawFirmName}{REPLACE-LAW-FIRM-NAME}
-\newcommand{\LawFirmAddress}{REPLACE-LAW-FIRM-ADDRESS}
-\newcommand{\LawFirmPhone}{REPLACE-LAW-FIRM-PHONE}
-\newcommand{\LawFirmEmail}{REPLACE-LAW-FIRM-EMAIL}
-\newcommand{\LawFirmWebsite}{REPLACE-LAW-FIRM-WEBSITE}
+
 
 
 % 设置字体
@@ -43,35 +31,7 @@
 % 清空默认的页眉和页脚
 \fancyhf{}
 
-% 设置首页的页眉和页脚
-% 设置首页的页眉和页脚
-\newcommand{\firstpageheader}{
-    \thispagestyle{fancy}  % 使用 fancy 样式
-    \fancyhead[L]{\textbf{\LawFirmName}\\~\\~}  % 左侧页眉
-    \fancyhead[R]{\LawFirmAddress\\
-    Phone: \LawFirmPhone \textbar{} Email: \LawFirmEmail\\
-    \LawFirmWebsite}  % 右侧页眉
-    \fancyfoot[C]{\thepage}  % 页脚中央显示页码
-}
 
-% 设置其它页面的页眉和页脚
-\newcommand{\otherpagesheader}{
-    \fancyhead[L]{Petitioner/Beneficiary: \Petitioner \\ \TypeOfPetition}  % 左侧页眉
-    \fancyhead[R]{}  % 右侧页眉为空白
-    \fancyfoot[]{}   % 清除默认页脚
-    \fancyfoot[C]{\thepage}  % 页脚中央显示页码
-    \renewcommand{\headrulewidth}{0pt}  % 禁用页眉的横线
-}
-
-\usepackage{etoolbox}  % 导入 etoolbox 包
-
-% 重定义 plain 页眉样式，使目录页使用其他页面的页眉设置
-\fancypagestyle{plain}{
-    \fancyhf{}  % 清空页眉和页脚
-    \fancyhead[L]{Petitioner/Beneficiary: \Petitioner \\ \TypeOfPetition}  % 左侧页眉
-    \fancyfoot[C]{\thepage}  % 页脚中央显示页码
-    \renewcommand{\headrulewidth}{0pt}  % 禁用页眉的横线
-}
 
 % 页面内容开始
 \newcommand{\startdocument}{
@@ -315,15 +275,6 @@
     \hspace{#1} \= \hspace{#1} \= \kill
     \> \textbf{#2} \> \textbf{Description} \+}
   { \- \end{tabbing}}
-
-% 定义书信格式结尾，右对齐
-\newcommand{\letterclosing}{
-    \vspace{1cm}  % 上方留出空间，确保结尾部分不会紧贴正文
-    \noindent  Sincerely, \\  % 使用 \hfill 使其右对齐
-    \vspace{1cm}  % 留出签名的空白
-    \noindent \AttorneyName, Esq  \\  % 使用 \hfill 使其右对齐
-    \noindent \LawFirmName  \\  % 使用 \hfill 使其右对齐
-}
 
 \RequirePackage{tocloft}
 
