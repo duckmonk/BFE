@@ -83,9 +83,14 @@ export const clientCaseApi = {
   createCase: async (): Promise<any> => {
     return api.post(`${API_PATHS.CLIENT_CASE}/create`);
   },
-  initLatex: (caseId: number, typeOfPetition: string, exhibitList: string[]) => 
+  initLatex: (caseId: number, typeOfPetition: string, exhibitList: string[], premiumProcess: string, mailingService: string, beneficiaryWorkState: string) => 
     api.post(
-      `${API_PATHS.CLIENT_CASE}/init-latex?caseId=${caseId}&typeOfPetition=${encodeURIComponent(typeOfPetition)}&exhibitList=${encodeURIComponent(JSON.stringify(exhibitList))}`,
+      `${API_PATHS.CLIENT_CASE}/init-latex?caseId=${caseId}` +
+      `&typeOfPetition=${encodeURIComponent(typeOfPetition)}` +
+      `&exhibitList=${encodeURIComponent(JSON.stringify(exhibitList))}` +
+      `&premiumProcess=${encodeURIComponent(premiumProcess)}` +
+      `&mailingService=${encodeURIComponent(mailingService)}` +
+      `&beneficiaryWorkState=${encodeURIComponent(beneficiaryWorkState)}`,
       null,
       {
         headers: {

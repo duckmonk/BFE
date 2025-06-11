@@ -32,9 +32,6 @@ public class ClientCase {
 
     private Boolean niwPetitionFinished = false;
 
-    private String typeOfPetition;
-
-    private String exhibitList;
 
     // PL Formatting LaTeX cls content
     private String plFormattingCls;
@@ -45,6 +42,13 @@ public class ClientCase {
 
     // Immigration Forms file URL
     private String immigrationForms;
+
+    // PL formatting页面的输入
+    private String typeOfPetition;
+    private String exhibitList;
+    private String premiumProcess;
+    private String beneficiaryWorkState;
+    private String mailingService;
 
     private String convertFieldName(String fieldName) {
         if ("id".equals(fieldName)) {

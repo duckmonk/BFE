@@ -27,6 +27,12 @@ const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
   });
   const [plFormattingCls, setPlFormattingCls] = useState<string>('');
   const hasAutoPreview = useRef(false);
+  const [premiumProcess, setPremiumProcess] = useState('NO');
+  const [mailingService, setMailingService] = useState('U.S. Postal Service (USPS)');
+  const [beneficiaryWorkState, setBeneficiaryWorkState] = useState('No U.S. employment');
+  const usStates = [
+    'No U.S. employment', 'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia', 'Florida', 'Georgia', 'Guam', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Marshall Islands', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Northern Mariana Islands', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'US Virgin Islands', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming', 'Armed Forces'
+  ];
 
   // Fetch data on component mount and when clientCaseId changes
   useEffect(() => {
@@ -47,6 +53,9 @@ const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
             if (response.data.exhibitList) {
               setExhibitList(response.data.exhibitList);
             }
+            if (response.data.premiumProcess) setPremiumProcess(response.data.premiumProcess);
+            if (response.data.mailingService) setMailingService(response.data.mailingService);
+            if (response.data.beneficiaryWorkState) setBeneficiaryWorkState(response.data.beneficiaryWorkState);
           }
         } catch (error) {
           console.error('Failed to fetch data:', error);
@@ -100,7 +109,7 @@ const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
   const initializeLatex = async () => {
     setInitLoading(true);
     try {
-      const response = await clientCaseApi.initLatex(clientCaseId, typeOfPetition, exhibitList);
+      const response = await clientCaseApi.initLatex(clientCaseId, typeOfPetition, exhibitList, premiumProcess, mailingService, beneficiaryWorkState);
       // 判断返回内容类型
       if (typeof response.data === 'string') {
         setLatexContent(response.data);
@@ -248,6 +257,29 @@ const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
                       Add Exhibit
                     </Button>
                   </Box>
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <FormControl sx={{ minWidth: 120 }}>
+                    <InputLabel>Premium Process</InputLabel>
+                    <Select value={premiumProcess} label="Premium Process" onChange={e => setPremiumProcess(e.target.value)}>
+                      <MenuItem value="YES">YES</MenuItem>
+                      <MenuItem value="NO">NO</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl sx={{ minWidth: 220 }}>
+                    <InputLabel>Mailing Service</InputLabel>
+                    <Select value={mailingService} label="Mailing Service" onChange={e => setMailingService(e.target.value)}>
+                      <MenuItem value="U.S. Postal Service (USPS)">U.S. Postal Service (USPS)</MenuItem>
+                      <MenuItem value="FedEx, UPS, and DHL deliveries">FedEx, UPS, and DHL deliveries</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl sx={{ minWidth: 220 }}>
+                    <InputLabel>Work State</InputLabel>
+                    <Select value={beneficiaryWorkState} label="Work State" onChange={e => setBeneficiaryWorkState(e.target.value)}>
+                      {usStates.map(state => <MenuItem key={state} value={state}>{state}</MenuItem>)}
+                    </Select>
+                  </FormControl>
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 2 }}>

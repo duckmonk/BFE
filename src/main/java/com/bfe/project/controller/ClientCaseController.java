@@ -105,6 +105,9 @@ public class ClientCaseController {
         }
         
         result.put("tasksStatus", taskCenterController.getTasksStatus(existingCase.getId()));
+        result.put("premiumProcess", existingCase.getPremiumProcess());
+        result.put("mailingService", existingCase.getMailingService());
+        result.put("beneficiaryWorkState", existingCase.getBeneficiaryWorkState());
         return result;
     }
 
@@ -263,7 +266,10 @@ public class ClientCaseController {
     public ResponseEntity<String> initLatex(
             @RequestParam Integer caseId,
             @RequestParam String typeOfPetition,
-            @RequestParam(required = false) String exhibitList
+            @RequestParam(required = false) String exhibitList,
+            @RequestParam String premiumProcess,
+            @RequestParam String mailingService,
+            @RequestParam String beneficiaryWorkState
             ) throws JsonProcessingException {
         try {
             // 1. 查找 ClientCase
@@ -428,8 +434,32 @@ public class ClientCaseController {
                 clientCase.setExhibitList(exhibitList);
             }
 
+            latexContent = latexContent.replace("REPLACE-MAILING-SERVICE", mailingService);
+            // 生成REPLACE-RECEIVING-ADDRESS
+            Set<String> westStates = new HashSet<>(Arrays.asList(
+                "No U.S. employment", "Alaska", "Arizona", "Arkansas", "Armed Forces", "California", "Colorado", "Georgia", "Guam", "Hawaii", "Idaho", "Louisiana", "Marshall Islands", "Montana", "Nevada", "New Mexico", "Northern Mariana Islands", "Oklahoma", "Oregon", "Texas", "US Virgin Islands", "Utah", "Washington", "Wyoming"
+            ));
+            String receivingAddress;
+            if (westStates.contains(beneficiaryWorkState)) {
+                if ("U.S. Postal Service (USPS)".equals(mailingService)) {
+                    receivingAddress = "USCIS\\\\\nAttn: Premium I-140\\\\\nP.O. Box 21500\\\\\nPhoenix, AZ 85036-1500";
+                } else {
+                    receivingAddress = "USCIS\\\\\nAttn: Premium I-140 (Box 21500)\\\\\n2108 E. Elliot Rd.\\\\\nTempe, AZ 85284-1806";
+                }
+            } else {
+                if ("U.S. Postal Service (USPS)".equals(mailingService)) {
+                    receivingAddress = "USCIS\\\\\nAttn: Premium I-140\\\\\nP.O. Box 4008\\\\\nCarol Stream, IL 60197-4008";
+                } else {
+                    receivingAddress = "USCIS\\\\\nAttn: Premium I-140 (Box 4008)\\\\\n2500 Westfield Drive\\\\\nElgin, IL 60124-7836";
+                }
+            }
+            latexContent = latexContent.replace("REPLACE-RECEIVING-ADDRESS", receivingAddress);
+
             // 保存
             clientCase.setTypeOfPetition(typeOfPetition);
+            clientCase.setPremiumProcess(premiumProcess);
+            clientCase.setMailingService(mailingService);
+            clientCase.setBeneficiaryWorkState(beneficiaryWorkState);
             // 如果 latexContent 为空，则使用 seed.tex 内容
             if (latexContent == null || latexContent.trim().isEmpty()) {
                 latexContent = new String(Files.readAllBytes(Paths.get("./resources/latex/seed.tex")));
