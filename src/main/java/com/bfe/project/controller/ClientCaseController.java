@@ -366,20 +366,24 @@ public class ClientCaseController {
                 .orderByAsc(InfoCollAcademicHistory::getId)
                 .list();
             StringBuilder educationListContent = new StringBuilder();
-            for (int i = 0; i < academicList.size(); i++) {
-                InfoCollAcademicHistory edu = academicList.get(i);
-                educationListContent.append("\\item \\textbf{")
-                    .append(edu.getSchoolName() != null ? edu.getSchoolName() : "")
-                    .append(":} ")
-                    .append(edu.getDegree() != null ? edu.getDegree() : "");
-                if (edu.getMajor() != null && !edu.getMajor().isEmpty()) {
-                    educationListContent.append(" with a major in ").append(edu.getMajor());
+            if (!academicList.isEmpty()) {
+                educationListContent.append("\\begin{itemize}\n");
+                for (int i = 0; i < academicList.size(); i++) {
+                    InfoCollAcademicHistory edu = academicList.get(i);
+                    educationListContent.append("\\item \\textbf{")
+                        .append(edu.getSchoolName() != null ? edu.getSchoolName() : "")
+                        .append(":} ")
+                        .append(edu.getDegree() != null ? edu.getDegree() : "");
+                    if (edu.getMajor() != null && !edu.getMajor().isEmpty()) {
+                        educationListContent.append(" with a major in ").append(edu.getMajor());
+                    }
+                    if (edu.getStatus() != null && !edu.getStatus().isEmpty()) {
+                        educationListContent.append(" (").append(edu.getStatus()).append(")");
+                    }
+                    educationListContent.append(" (Exhibit ").append(i + 1).append(").");
+                    educationListContent.append("\n");
                 }
-                if (edu.getStatus() != null && !edu.getStatus().isEmpty()) {
-                    educationListContent.append(" (").append(edu.getStatus()).append(")");
-                }
-                educationListContent.append(" (Exhibit ").append(i + 1).append(").");
-                educationListContent.append("\n");
+                educationListContent.append("\\end{itemize}\n");
             }
             latexContent = latexContent.replace("REPLACE-EDUCATION-LIST", educationListContent.toString());
 
@@ -422,17 +426,21 @@ public class ClientCaseController {
             latexContent = latexContent.replace("REPLACE-EDUCATION-SUMMARY", summary.toString());
 
             // 处理 Exhibit List
+            StringBuilder exhibitListContent = new StringBuilder();
             if (exhibitList != null && !exhibitList.trim().isEmpty()) {
                 List<String> exhibitListArray = new ObjectMapper().readValue(exhibitList, List.class);
-                StringBuilder exhibitListContent = new StringBuilder();
-                for (int i = 0; i < exhibitListArray.size(); i++) {
-                    exhibitListContent.append("\\item \\textbf{Exhibit ").append(i + 1).append("}: ").append(exhibitListArray.get(i)).append("\n");
+                if (!exhibitListArray.isEmpty()) {
+                    exhibitListContent.append("\\begin{itemize}\n");
+                    for (int i = 0; i < exhibitListArray.size(); i++) {
+                        exhibitListContent.append("\\item \\textbf{Exhibit ").append(i + 1).append("}: ").append(exhibitListArray.get(i)).append("\n");
+                    }
+                    exhibitListContent.append("\\end{itemize}\n");
                 }
-                latexContent = latexContent.replace("REPLACE-EXHIBIT-LIST", exhibitListContent.toString());
-                
-                // 将 exhibit list 保存到数据库
-                clientCase.setExhibitList(exhibitList);
             }
+            latexContent = latexContent.replace("REPLACE-EXHIBIT-LIST", exhibitListContent.toString());
+            
+            // 将 exhibit list 保存到数据库
+            clientCase.setExhibitList(exhibitList);
 
             latexContent = latexContent.replace("REPLACE-MAILING-SERVICE", mailingService);
             // 生成REPLACE-RECEIVING-ADDRESS
@@ -505,8 +513,18 @@ public class ClientCaseController {
                 .body(pdfBytes);
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            Map<String, Object> errorBody = new HashMap<>();
+            errorBody.put("status", "error");
+            errorBody.put("message", e.getMessage());
+            try {
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ObjectMapper().writeValueAsBytes(errorBody));
+            } catch (Exception ex) {
+                return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
                     .body(("Failed to render PDF: " + e.getMessage()).getBytes());
+            }
         }
     }
 

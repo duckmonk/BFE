@@ -33,6 +33,7 @@ const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
   const usStates = [
     'No U.S. employment', 'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia', 'Florida', 'Georgia', 'Guam', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Marshall Islands', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Northern Mariana Islands', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'US Virgin Islands', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming', 'Armed Forces'
   ];
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   // Fetch data on component mount and when clientCaseId changes
   useEffect(() => {
@@ -78,7 +79,7 @@ const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
 
   const handleDeleteExhibit = (index: number) => {
     const newList = exhibitList.filter((_, i) => i !== index);
-    setExhibitList(newList.length > 0 ? newList : ['']);
+    setExhibitList(newList);
   };
 
   // 初始化 LaTeX
@@ -153,22 +154,33 @@ const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
       return;
     }
     setLoading(true);
+    setPdfError(null);
     try {
       const pdfBlob = await clientCaseApi.saveAndPreviewLatex(clientCaseId, latexContent);
-      setSnackbar({ open: true, message: 'Your document was saved and rendered successfully.', severity: 'success', title: 'Success' });
-      if (pdfUrl) {
-        window.URL.revokeObjectURL(pdfUrl);
+      const contentType = pdfBlob.type || '';
+      if (contentType.includes('pdf')) {
+        setSnackbar({ open: true, message: 'Your document was saved and rendered successfully.', severity: 'success', title: 'Success' });
+        if (pdfUrl) {
+          window.URL.revokeObjectURL(pdfUrl);
+          setPdfUrl(null);
+        }
+        const url = window.URL.createObjectURL(pdfBlob);
+        setPdfUrl(url);
+      } else {
+        const text = await pdfBlob.text();
+        let errorMsg = text;
+        try {
+          const json = JSON.parse(text);
+          if (json.status === 'error' && json.message) {
+            errorMsg = json.message;
+          }
+        } catch {}
+        setPdfError(errorMsg);
         setPdfUrl(null);
       }
-      const url = window.URL.createObjectURL(pdfBlob);
-      setPdfUrl(url);
     } catch (error: any) {
-      setSnackbar({
-        open: true,
-        message: error.message || 'Failed to save or render.',
-        severity: 'error',
-        title: 'Error',
-      });
+      setPdfError(error.message || 'Failed to save or render.');
+      setPdfUrl(null);
     }
     setLoading(false);
   };
@@ -365,7 +377,11 @@ const PLFormatting: React.FC<PLFormattingProps> = ({ clientCaseId }) => {
           )}
         </Box>
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {pdfUrl ? (
+          {pdfError ? (
+            <Box sx={{ color: 'error.main', whiteSpace: 'pre-wrap', p: 2, maxHeight: '100%', overflow: 'auto', width: '100%' }}>
+              {pdfError}
+            </Box>
+          ) : pdfUrl ? (
             <iframe
               src={pdfUrl}
               style={{ width: '100%', height: '100%', border: 'none' }}

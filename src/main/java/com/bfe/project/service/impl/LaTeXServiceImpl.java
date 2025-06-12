@@ -3,17 +3,21 @@ package com.bfe.project.service.impl;
 import com.bfe.project.service.LaTeXService;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 
 @Service
 public class LaTeXServiceImpl implements LaTeXService {
 
     @Override
-    public byte[] convertLatexToPdf(String latexContent, String clsContent) throws IOException, InterruptedException {
+    public byte[] convertLatexToPdf(String latexContent, String clsContent) throws Exception {
         Path tempDir = null;
         try {
             // 1. 创建临时目录
@@ -24,11 +28,11 @@ public class LaTeXServiceImpl implements LaTeXService {
             // 2. 如果有cls内容，创建临时.cls文件
             if (clsContent != null && !clsContent.trim().isEmpty()) {
                 Path clsFile = tempDir.resolve("pl_template.cls");
-                Files.write(clsFile, clsContent.getBytes());
+                Files.write(clsFile, clsContent.getBytes(StandardCharsets.UTF_8));
             }
 
             // 3. 将 LaTeX 内容写入 .tex 文件
-            Files.write(texFile, latexContent.getBytes());
+            Files.write(texFile, latexContent.getBytes(StandardCharsets.UTF_8));
 
             // 4. 构建并执行 pdflatex 命令
             ProcessBuilder pb = new ProcessBuilder("pdflatex", "-interaction=nonstopmode", texFile.toAbsolutePath().toString());
@@ -36,22 +40,27 @@ public class LaTeXServiceImpl implements LaTeXService {
             pb.redirectErrorStream(true); // 合并标准错误和标准输出
 
             Process process = pb.start();
+
+            StringBuilder log = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.append(line).append("\n");
+                }
+            }
             int exitCode = process.waitFor();
 
             // 读取进程输出（用于调试）
-            try (InputStream is = process.getInputStream()) {
-                String processOutput = new String(is.readAllBytes());
-                System.out.println("pdflatex output:\n" + processOutput);
-            }
+            System.out.println("pdflatex output:\n" + log.toString());
 
             // 5. 检查 pdflatex 是否成功
             if (exitCode != 0) {
-                throw new IOException("pdflatex compilation failed with exit code " + exitCode);
+                throw new RuntimeException("LaTeX compile error:\n" + log.toString());
             }
 
             // 6. 读取生成的 .pdf 文件
             if (!Files.exists(pdfFile)) {
-                 throw new IOException("pdflatex did not produce a PDF file.");
+                throw new RuntimeException("PDF not generated. Log:\n" + log.toString());
             }
 
             return Files.readAllBytes(pdfFile);

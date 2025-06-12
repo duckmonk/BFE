@@ -9,9 +9,5 @@ export const API_PATHS = {
   INFO_COLL: `/info-coll`,
   CLIENT_CASE: `/client-case`,
   TASK: `/task`,
-  // 其他API路径可以在这里添加
-  // AUTH: `${BASE_URL}/auth`,
-  // USER: `${BASE_URL}/user`,
-  // 等等...
 } as const;
 
